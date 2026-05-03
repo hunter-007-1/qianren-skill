@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+}
+
+enum ProcessingStatus {
+  PENDING
+  DONE
+  FAILED
+}
+
+enum AnalysisStatus {
+  NOT_STARTED
+  RUNNING
+  DONE
+  FAILED
+}
+
+enum MessageRole {
+  user
+  assistant
+}
+
+model Character {
+  id             String           @id @default(cuid())
+  nickname       String
+  relationship   String?
+  background     String?
+  timeframe      String?
+  impression     String?
+  avatarUrl      String?
+  userAvatarUrl  String?
+  parseStatus    ProcessingStatus @default(PENDING)
+  analysisStatus AnalysisStatus   @default(NOT_STARTED)
+  errorMessage   String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  sourceDocuments SourceDocument[]
+  analysis        Analysis?
+  chatMessages    ChatMessage[]
+}
+
+model SourceDocument {
+  id         String   @id @default(cuid())
+  characterId String
+  filename   String
+  fileType   String
+  content    String
+  createdAt  DateTime @default(now())
+
+  character Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+}
+
+model Analysis {
+  id                  String   @id @default(cuid())
+  characterId         String   @unique
+  persona             Json
+  memories            Json
+  speakingStyle       Json
+  emotionPattern      Json
+  relationshipPattern Json
+  rawResponse         String
+  modelName           String
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  character Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+}
+
+model ChatMessage {
+  id          String      @id @default(cuid())
+  characterId String
+  role        MessageRole
+  content     String
+  createdAt   DateTime    @default(now())
+
+  character Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+}
