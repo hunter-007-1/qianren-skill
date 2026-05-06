@@ -19,6 +19,7 @@ export type AuthUser = {
   id: string;
   email: string;
   nickname: string | null;
+  isAdmin: boolean;
 };
 
 const JWT_SECRET = process.env.JWT_SECRET || "qianren-skill-dev-secret-key";
@@ -101,7 +102,7 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
 
   const user = await prisma.user.findUnique({
     where: { id: payload.userId },
-    select: { id: true, email: true, nickname: true },
+    select: { id: true, email: true, nickname: true, isAdmin: true },
   });
 
   if (!user) return null;
@@ -110,6 +111,7 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
     id: user.id,
     email: user.email,
     nickname: user.nickname,
+    isAdmin: user.isAdmin,
   };
 }
 
@@ -140,11 +142,27 @@ export async function createUser(data: {
   passwordHash: string;
   nickname?: string;
 }) {
+  const adminEmails = getAdminEmails();
+  const isAdmin = adminEmails.includes(data.email);
+  
   return prisma.user.create({
     data: {
       email: data.email,
       passwordHash: data.passwordHash,
       nickname: data.nickname,
+      isAdmin,
     },
   });
+}
+
+export function getAdminEmails(): string[] {
+  return (process.env.ADMIN_EMAILS || "").split(",").filter(Boolean);
+}
+
+export async function checkIsAdmin(userId: string): Promise<boolean> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { isAdmin: true },
+  });
+  return user?.isAdmin ?? false;
 }

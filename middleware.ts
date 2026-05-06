@@ -10,6 +10,8 @@ const publicPaths: string[] = [
   "/api/auth/login",
   "/api/auth/logout",
   "/api/auth/me",
+  "/admin",
+  "/api/admin/",
 ];
 
 const publicApiPrefixes = [
