@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { LogOut, User as UserIcon, ChevronDown } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { LogOut, User as UserIcon, ChevronDown, Shield } from "lucide-react";
 
 interface User {
   id: string;
   email: string;
   nickname: string | null;
+  isAdmin?: boolean;
 }
 
 export function UserMenu() {
@@ -53,6 +55,16 @@ export function UserMenu() {
 
       {open && (
         <div className="absolute right-0 top-full mt-2 w-40 rounded-xl border border-slate-200 bg-white py-2 shadow-lg dark:border-slate-700 dark:bg-slate-800">
+          {user?.isAdmin && (
+            <Link
+              href="/admin"
+              onClick={() => setOpen(false)}
+              className="flex w-full items-center gap-2 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-700"
+            >
+              <Shield className="h-4 w-4" />
+              管理员面板
+            </Link>
+          )}
           <button
             onClick={handleLogout}
             className="flex w-full items-center gap-2 px-4 py-2 text-sm font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10"
