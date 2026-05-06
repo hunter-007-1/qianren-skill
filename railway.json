@@ -5,7 +5,7 @@
     "buildCommand": "npx prisma generate && npm run build"
   },
   "deploy": {
-    "startCommand": "npx prisma db push --force-collapse && npm run start",
+    "startCommand": "npx prisma db push --accept-data-loss && npm run start",
     "restartPolicyType": "ON_FAILURE"
   }
 }
