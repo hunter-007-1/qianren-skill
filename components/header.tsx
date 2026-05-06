@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, PlusCircle, Sparkles } from "lucide-react";
 import { ThemeToggle } from "./theme-toggle";
+import { UserMenu } from "./user-menu";
 
 const navItems = [
   { href: "/", label: "首页", icon: Home },
@@ -55,6 +56,7 @@ export function Header() {
             })}
           </nav>
           <div className="h-6 w-px bg-slate-200 dark:bg-slate-800 mx-1" />
+          <UserMenu />
           <ThemeToggle />
         </div>
       </div>

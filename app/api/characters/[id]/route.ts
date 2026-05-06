@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { getCurrentUser } from "@/lib/auth";
 
 export async function GET(
   _request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
   const { id } = await context.params;
+  const user = await getCurrentUser();
 
   const character = await prisma.character.findUnique({
     where: { id },
@@ -20,6 +22,10 @@ export async function GET(
     return NextResponse.json({ error: "角色不存在" }, { status: 404 });
   }
 
+  if (user && character.userId && character.userId !== user.id) {
+    return NextResponse.json({ error: "无权限访问" }, { status: 403 });
+  }
+
   return NextResponse.json(character);
 }
 
@@ -29,6 +35,20 @@ export async function PATCH(
 ) {
   try {
     const { id } = await context.params;
+    const user = await getCurrentUser();
+    
+    if (!user) {
+      return NextResponse.json({ error: "请先登录" }, { status: 401 });
+    }
+
+    const existing = await prisma.character.findUnique({ where: { id } });
+    if (!existing) {
+      return NextResponse.json({ error: "角色不存在" }, { status: 404 });
+    }
+    if (existing.userId && existing.userId !== user.id) {
+      return NextResponse.json({ error: "无权限修改" }, { status: 403 });
+    }
+
     const body = await request.json();
 
     const character = await prisma.character.update({
@@ -57,8 +77,20 @@ export async function DELETE(
 ) {
   try {
     const { id } = await context.params;
+    const user = await getCurrentUser();
 
-    // Prisma schema 中已配置 onDelete: Cascade，所以直接删除 Character 即可
+    if (!user) {
+      return NextResponse.json({ error: "请先登录" }, { status: 401 });
+    }
+
+    const existing = await prisma.character.findUnique({ where: { id } });
+    if (!existing) {
+      return NextResponse.json({ error: "角色不存在" }, { status: 404 });
+    }
+    if (existing.userId && existing.userId !== user.id) {
+      return NextResponse.json({ error: "无权限删除" }, { status: 403 });
+    }
+
     await prisma.character.delete({
       where: { id },
     });

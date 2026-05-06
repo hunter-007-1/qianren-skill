@@ -2,10 +2,14 @@ import { ProcessingStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { parseByFileType } from "@/lib/file-parser";
 import { prisma } from "@/lib/db";
+import { getCurrentUser } from "@/lib/auth";
 
 export async function GET() {
   try {
+    const user = await getCurrentUser();
+    
     const characters = await prisma.character.findMany({
+      where: user ? { userId: user.id } : undefined,
       orderBy: { createdAt: "desc" },
       select: {
         id: true,
@@ -23,6 +27,11 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: "请先登录" }, { status: 401 });
+    }
+    
     const formData = await request.formData();
 
     const nickname = String(formData.get("nickname") ?? "").trim();
@@ -84,6 +93,7 @@ export async function POST(request: Request) {
         impression,
         avatarUrl,
         userAvatarUrl,
+        userId: user.id,
         parseStatus: ProcessingStatus.DONE,
         sourceDocuments: {
           create: documents,
