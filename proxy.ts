@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { verifyToken, getSessionCookie } from "./lib/auth";
+import { verifyToken } from "./lib/auth";
 
 const publicPaths: string[] = [
   "/",
@@ -34,7 +34,7 @@ function isPublicPath(pathname: string, method: string) {
   return publicPaths.some((path) => pathname === path || pathname.startsWith(path + "/"));
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const method = request.method;
 
