@@ -107,11 +107,14 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
 
   if (!user) return null;
 
+  const adminEmails = getAdminEmails();
+  const isAdmin = user.isAdmin || adminEmails.includes(user.email);
+
   return {
     id: user.id,
     email: user.email,
     nickname: user.nickname,
-    isAdmin: user.isAdmin,
+    isAdmin,
   };
 }
 
@@ -162,7 +165,22 @@ export function getAdminEmails(): string[] {
 export async function checkIsAdmin(userId: string): Promise<boolean> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { isAdmin: true },
+    select: { isAdmin: true, email: true },
   });
-  return user?.isAdmin ?? false;
+
+  if (!user) return false;
+
+  if (user.isAdmin) return true;
+
+  const adminEmails = getAdminEmails();
+  const isAdminEmail = adminEmails.includes(user.email);
+
+  if (isAdminEmail) {
+    prisma.user.update({
+      where: { id: userId },
+      data: { isAdmin: true },
+    }).catch(() => {});
+  }
+
+  return isAdminEmail;
 }
