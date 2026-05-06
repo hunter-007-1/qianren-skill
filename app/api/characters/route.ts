@@ -8,8 +8,12 @@ export async function GET() {
   try {
     const user = await getCurrentUser();
     
+    if (!user) {
+      return NextResponse.json([]);
+    }
+
     const characters = await prisma.character.findMany({
-      where: user ? { userId: user.id } : undefined,
+      where: { userId: user.id },
       orderBy: { createdAt: "desc" },
       select: {
         id: true,
