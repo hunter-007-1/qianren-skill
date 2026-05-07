@@ -46,6 +46,7 @@ export async function POST(request: Request) {
         email: user.email,
         nickname: user.nickname,
       },
+      token,
     });
   } catch (error) {
     console.error("Login error:", error);
