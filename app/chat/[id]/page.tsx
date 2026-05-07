@@ -31,6 +31,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [typing, setTyping] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -64,14 +65,25 @@ export default function ChatPage() {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, sending]);
+  }, [messages, sending, typing]);
 
   const send = async () => {
     const content = input.trim();
     if (!content || sending) return;
 
-    setSending(true);
+    const optimisticUser: ChatMessage = {
+      id: `temp-${Date.now()}`,
+      role: "user",
+      content,
+      createdAt: new Date(),
+      characterId: id,
+    };
+
     setInput("");
+    setSending(true);
+    setTyping(true);
+    setMessages((prev) => [...prev, optimisticUser]);
+
     try {
       const response = await fetch(`/api/chat/${id}`, {
         method: "POST",
@@ -82,10 +94,16 @@ export default function ChatPage() {
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error ?? "发送失败");
 
-      setMessages((prev) => [...prev, payload.user, payload.assistant]);
+      setMessages((prev) => {
+        const filtered = prev.filter((m) => m.id !== optimisticUser.id);
+        return [...filtered, payload.user, payload.assistant];
+      });
+      setTyping(false);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "发送失败");
+      setMessages((prev) => prev.filter((m) => m.id !== optimisticUser.id));
       setInput(content);
+      setTyping(false);
     } finally {
       setSending(false);
     }
@@ -113,6 +131,7 @@ export default function ChatPage() {
   const regenerate = async () => {
     if (messages.length === 0 || sending) return;
     setSending(true);
+    setTyping(true);
     try {
       const response = await fetch(`/api/chat/${id}/regenerate`, {
         method: "POST",
@@ -120,6 +139,7 @@ export default function ChatPage() {
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error ?? "重新生成失败");
       setMessages((prev) => [...prev.slice(0, -1), payload]);
+      setTyping(false);
     } catch (error) {
       toast.error("重新生成失败");
     } finally {
@@ -310,18 +330,31 @@ export default function ChatPage() {
                   </motion.div>
                 ))
               )}
-              {sending && (
+              {typing && (
                 <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
                   className="flex justify-start"
                 >
                   <div className="flex items-start gap-4">
                     <div className="h-10 w-10 shrink-0 overflow-hidden rounded-2xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center">
-                      <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                      {character.avatarUrl ? (
+                        <img
+                          src={character.avatarUrl}
+                          alt={character.nickname}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center bg-slate-900 text-blue-400 font-black">
+                          {character.nickname[0]}
+                        </div>
+                      )}
                     </div>
-                    <div className="rounded-[1.5rem] rounded-tl-none bg-slate-50 border border-slate-100 px-6 py-3.5 text-sm text-slate-400 font-black uppercase tracking-widest animate-pulse dark:bg-slate-800 dark:border-slate-700">
-                      Processing...
+                    <div className="flex items-center gap-1 rounded-[1.5rem] rounded-tl-none bg-slate-50 border border-slate-100 px-5 py-3.5 dark:bg-slate-800 dark:border-slate-700">
+                      <span className="h-2 w-2 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: "0ms" }} />
+                      <span className="h-2 w-2 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: "150ms" }} />
+                      <span className="h-2 w-2 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: "300ms" }} />
                     </div>
                   </div>
                 </motion.div>
