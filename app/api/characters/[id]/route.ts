@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, checkIsAdmin } from "@/lib/auth";
 
 export async function GET(
   _request: Request,
@@ -23,7 +23,10 @@ export async function GET(
   }
 
   if (user && character.userId && character.userId !== user.id) {
-    return NextResponse.json({ error: "无权限访问" }, { status: 403 });
+    const isAdmin = await checkIsAdmin(user.id);
+    if (!isAdmin) {
+      return NextResponse.json({ error: "无权限访问" }, { status: 403 });
+    }
   }
 
   return NextResponse.json(character);
@@ -46,7 +49,10 @@ export async function PATCH(
       return NextResponse.json({ error: "角色不存在" }, { status: 404 });
     }
     if (existing.userId && existing.userId !== user.id) {
-      return NextResponse.json({ error: "无权限修改" }, { status: 403 });
+      const isAdmin = await checkIsAdmin(user.id);
+      if (!isAdmin) {
+        return NextResponse.json({ error: "无权限修改" }, { status: 403 });
+      }
     }
 
     const body = await request.json();
@@ -88,7 +94,10 @@ export async function DELETE(
       return NextResponse.json({ error: "角色不存在" }, { status: 404 });
     }
     if (existing.userId && existing.userId !== user.id) {
-      return NextResponse.json({ error: "无权限删除" }, { status: 403 });
+      const isAdmin = await checkIsAdmin(user.id);
+      if (!isAdmin) {
+        return NextResponse.json({ error: "无权限删除" }, { status: 403 });
+      }
     }
 
     await prisma.character.delete({

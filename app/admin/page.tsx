@@ -148,6 +148,13 @@ export default function AdminPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
+                    <Link
+                      href={`/chat/${c.id}`}
+                      className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-50"
+                    >
+                      <Sparkles className="h-4 w-4" />
+                      查看
+                    </Link>
                     <span className={`rounded-full px-2 py-0.5 text-xs ${
                       c.analysisStatus === "DONE" ? "bg-green-100 text-green-600" :
                       c.analysisStatus === "RUNNING" ? "bg-yellow-100 text-yellow-600" :
