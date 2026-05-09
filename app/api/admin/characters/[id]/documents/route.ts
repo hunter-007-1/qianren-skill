@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import { getCurrentUser, checkIsAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
-export async function GET() {
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const user = await getCurrentUser();
     if (!user) {
@@ -14,28 +17,23 @@ export async function GET() {
       return NextResponse.json({ error: "无权限" }, { status: 403 });
     }
 
-    const characters = await prisma.character.findMany({
+    const { id } = await params;
+
+    const documents = await prisma.sourceDocument.findMany({
+      where: { characterId: id },
       select: {
         id: true,
-        nickname: true,
-        avatarUrl: true,
-        userAvatarUrl: true,
-        analysisStatus: true,
+        filename: true,
+        fileType: true,
+        content: true,
         createdAt: true,
-        userId: true,
-        user: {
-          select: {
-            email: true,
-            nickname: true,
-          },
-        },
       },
       orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json(characters);
+    return NextResponse.json(documents);
   } catch (error) {
-    console.error("Get all characters error:", error);
-    return NextResponse.json({ error: "获取角色列表失败" }, { status: 500 });
+    console.error("Get source documents error:", error);
+    return NextResponse.json({ error: "获取源文档失败" }, { status: 500 });
   }
 }

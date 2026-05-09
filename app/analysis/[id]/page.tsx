@@ -325,7 +325,7 @@ function ResultCard({
 }: {
   title: string;
   icon: React.ReactNode;
-  data: any;
+  data: unknown;
   color: "blue" | "indigo" | "cyan" | "rose" | "emerald";
 }) {
   const [isExpanded, setIsExpanded] = useState(false);

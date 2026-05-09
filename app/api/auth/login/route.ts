@@ -6,6 +6,7 @@ import {
   createSession,
   setSessionCookie,
 } from "@/lib/auth";
+import { prisma } from "@/lib/db";
 
 export async function POST(request: Request) {
   try {
@@ -29,6 +30,14 @@ export async function POST(request: Request) {
       );
     }
 
+    // 检查用户是否被禁用
+    if (user.isDisabled) {
+      return NextResponse.json(
+        { error: "账号已被禁用，请联系管理员" },
+        { status: 403 }
+      );
+    }
+
     const isValid = await verifyPassword(password, user.passwordHash);
     if (!isValid) {
       return NextResponse.json(
@@ -36,6 +45,12 @@ export async function POST(request: Request) {
         { status: 401 }
       );
     }
+
+    // 更新最后登录时间
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date() },
+    });
 
     const token = await createSession(user.id);
     setSessionCookie(token);

@@ -102,10 +102,13 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
 
   const user = await prisma.user.findUnique({
     where: { id: payload.userId },
-    select: { id: true, email: true, nickname: true, isAdmin: true },
+    select: { id: true, email: true, nickname: true, isAdmin: true, isDisabled: true },
   });
 
   if (!user) return null;
+
+  // 检查用户是否被禁用
+  if (user.isDisabled) return null;
 
   const adminEmails = getAdminEmails();
   const isAdmin = user.isAdmin || adminEmails.includes(user.email);

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Noto_Sans_SC } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/header";
+import { ImpersonationBanner } from "@/components/impersonation-banner";
 import { ThemeProvider } from "next-themes";
 
 const notoSans = Noto_Sans_SC({
@@ -35,6 +36,7 @@ export default function RootLayout({
       >
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <div className="flex min-h-screen flex-col">
+            <ImpersonationBanner />
             <Header />
             {children}
           </div>
