@@ -21,19 +21,38 @@ export function ImpersonationBanner() {
     try {
       const adminToken = localStorage.getItem("admin-token");
       if (!adminToken) {
-        toast.error("无法恢复管理员身份");
+        toast.error("无法恢复管理员身份，请重新登录");
+        router.push("/login");
         return;
       }
 
-      // 恢复管理员 token
-      document.cookie = `qianren-session=${adminToken}; path=/; max-age=${7 * 24 * 60 * 60}`;
+      // 调用 stop-impersonate API，服务端恢复 admin cookie
+      const res = await fetch("/api/admin/stop-impersonate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ adminToken }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        // 如果 token 过期，清除 localStorage 并跳转登录
+        if (res.status === 400) {
+          localStorage.removeItem("admin-token");
+          toast.error(data.error || "管理员会话已过期，请重新登录");
+          router.push("/login");
+          return;
+        }
+        throw new Error(data.error || "恢复失败");
+      }
+
+      // 清除 localStorage 中的 admin token
       localStorage.removeItem("admin-token");
 
       toast.success("已恢复管理员身份");
       router.push("/admin");
       router.refresh();
     } catch (error) {
-      toast.error("恢复管理员身份失败");
+      toast.error(error instanceof Error ? error.message : "恢复管理员身份失败");
     } finally {
       setLoading(false);
     }
@@ -55,7 +74,7 @@ export function ImpersonationBanner() {
         className="flex items-center gap-2 rounded-lg bg-white/20 px-4 py-1.5 text-sm font-medium hover:bg-white/30 disabled:opacity-50"
       >
         <ArrowLeft className="h-4 w-4" />
-        返回管理员身份
+        {loading ? "恢复中..." : "返回管理员身份"}
       </button>
     </div>
   );

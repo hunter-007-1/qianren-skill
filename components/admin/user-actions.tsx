@@ -122,20 +122,12 @@ export function UserActions({
       }
 
       const data = await res.json();
-      
-      // 保存管理员 token
-      const adminToken = document.cookie
-        .split("; ")
-        .find((row) => row.startsWith("qianren-session="))
-        ?.split("=")[1];
-      
-      if (adminToken) {
-        localStorage.setItem("admin-token", adminToken);
+
+      // 保存 admin token 到 localStorage（API 已服务端设置新用户 cookie）
+      if (data.adminToken) {
+        localStorage.setItem("admin-token", data.adminToken);
       }
 
-      // 设置新的 token
-      document.cookie = `qianren-session=${data.token}; path=/; max-age=${7 * 24 * 60 * 60}`;
-      
       toast.success(`已切换到 ${data.user.nickname || data.user.email} 的账号`);
       router.push("/");
       router.refresh();

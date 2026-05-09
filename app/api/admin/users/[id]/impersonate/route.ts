@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser, checkIsAdmin, createSession } from "@/lib/auth";
+import { getCurrentUser, checkIsAdmin, createSession, setSessionCookie, getSessionCookie } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
 export async function POST(
@@ -44,13 +44,18 @@ export async function POST(
       return NextResponse.json({ error: "该用户已被禁用" }, { status: 400 });
     }
 
+    // 保存当前 admin token（在创建新 session 之前）
+    const adminToken = await getSessionCookie();
+
     // 创建新的 session
-    const token = await createSession(targetUser.id);
+    const newToken = await createSession(targetUser.id);
+
+    // 服务端设置新用户的 cookie（HttpOnly）
+    await setSessionCookie(newToken);
 
     return NextResponse.json({
-      token,
       user: targetUser,
-      adminToken: request.headers.get("Cookie")?.match(/qianren-session=([^;]+)/)?.[1],
+      adminToken, // 返回 admin token 供客户端保存到 localStorage
     });
   } catch (error) {
     console.error("Impersonate user error:", error);
