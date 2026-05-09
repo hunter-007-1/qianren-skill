@@ -38,7 +38,12 @@ export async function POST(request: Request) {
     });
 
     const token = await createSession(user.id);
-    setSessionCookie(token);
+    
+    try {
+      await setSessionCookie(token);
+    } catch (e) {
+      console.error("setSessionCookie error:", e);
+    }
 
     return NextResponse.json({
       id: user.id,
