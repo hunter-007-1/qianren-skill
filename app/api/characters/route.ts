@@ -61,9 +61,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "请填写人物昵称" }, { status: 400 });
     }
 
-    if (rawFiles.length === 0 && !pastedText) {
+    const hasSource = rawFiles.length > 0 || pastedText;
+    const hasPersona = !!impression;
+
+    if (!hasSource && !hasPersona) {
       return NextResponse.json(
-        { error: "请上传文件或粘贴文本" },
+        { error: "请填写主观印象或上传聊天资料" },
         { status: 400 },
       );
     }
@@ -89,6 +92,25 @@ export async function POST(request: Request) {
         filename: "manual-input.txt",
         fileType: "text/plain",
         content: pastedText,
+      });
+    }
+
+    // 如果没有聊天资料但有人设信息，自动创建人设文档
+    if (documents.length === 0 && impression) {
+      const personaContent = [
+        nickname && `昵称：${nickname}`,
+        relationship && `关系：${relationship}`,
+        background && `背景：${background}`,
+        timeframe && `时间跨度：${timeframe}`,
+        `主观印象：${impression}`,
+      ]
+        .filter(Boolean)
+        .join("\n");
+
+      documents.push({
+        filename: "persona-description.txt",
+        fileType: "text/plain",
+        content: personaContent,
       });
     }
 

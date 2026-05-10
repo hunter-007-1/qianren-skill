@@ -114,8 +114,8 @@ export default function NewCharacterPage() {
       return;
     }
 
-    if (files.length === 0 && !pastedText.trim()) {
-      toast.error("请上传文件或粘贴文本");
+    if (!impression.trim() && files.length === 0 && !pastedText.trim()) {
+      toast.error("请填写主观印象或上传聊天资料");
       return;
     }
 
@@ -172,7 +172,7 @@ export default function NewCharacterPage() {
             ✨ 创建人物数字画像
           </h1>
           <p className="mt-2 text-sm text-indigo-100">
-            上传聊天记录或粘贴文本，系统将自动分析并生成人物画像
+            填写人设描述或上传聊天记录，系统将自动分析并生成人物画像
           </p>
         </div>
       </section>
@@ -394,17 +394,23 @@ export default function NewCharacterPage() {
         {/* 主观印象 */}
         <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
           <h2 className="flex items-center gap-2 text-base font-semibold text-slate-900">
-            <span>💭</span> 你的主观印象
+            <span>💭</span> 人物描述 <span className="text-rose-500">*</span>
           </h2>
           <p className="mt-1 text-xs text-slate-500">
-            描述你对这个人的整体印象，帮助 AI 更准确地把握人物特点
+            描述你对这个人的了解，AI 将基于此生成人物画像
           </p>
 
           <textarea
             value={impression}
             onChange={(e) => setImpression(e.target.value)}
-            placeholder="例如：她是一个很有主见的人，说话直接但很有分寸..."
-            rows={3}
+            placeholder={`请尽可能详细地描述这个人，例如：
+
+• 性格特点：她是一个很有主见的人，说话直接但很有分寸
+• 语言习惯：喜欢用"哈哈"，经常发可爱的表情包
+• 兴趣爱好：喜欢追剧、逛街，对美食很有研究
+• 情感表达：不太会直接表达感情，但会用行动关心人
+• 你们的关系：认识3年的好朋友，经常一起出去玩...`}
+            rows={6}
             className="input mt-4"
           />
         </section>
@@ -412,10 +418,11 @@ export default function NewCharacterPage() {
         {/* 资料输入 */}
         <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
           <h2 className="flex items-center gap-2 text-base font-semibold text-slate-900">
-            <span>📄</span> 聊天资料 <span className="text-rose-500">*</span>
+            <span>📄</span> 聊天资料
+            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">可选</span>
           </h2>
           <p className="mt-1 text-xs text-slate-500">
-            上传文件或直接粘贴聊天记录文本
+            上传聊天记录可让 AI 分析更准确，也可直接使用人设信息创建
           </p>
 
           {/* 文件上传 */}
