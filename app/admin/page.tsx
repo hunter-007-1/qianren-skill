@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import useSWR from "swr";
 import {
@@ -93,13 +93,14 @@ export default function AdminPage() {
   });
 
   // 获取当前用户 ID
-  useState(() => {
+  useEffect(() => {
     fetch("/api/auth/me")
       .then((res) => res.json())
       .then((data) => {
         if (data?.id) setCurrentUserId(data.id);
-      });
-  });
+      })
+      .catch(() => {});
+  }, []);
 
   const handleDeleteCharacter = async (id: string) => {
     if (!confirm("确定要删除这个角色吗？此操作不可恢复。")) return;
