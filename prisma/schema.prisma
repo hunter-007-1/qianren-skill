@@ -20,6 +20,7 @@ model User {
   updatedAt  DateTime   @updatedAt
   characters Character[]
   sessions   Session[]
+  tags       Tag[]
 }
 
 model Session {
@@ -52,6 +53,7 @@ model Character {
   sourceDocuments SourceDocument[]
   analysis        Analysis?
   chatMessages    ChatMessage[]
+  characterTags   CharacterTag[]
 }
 
 model SourceDocument {
@@ -107,4 +109,28 @@ enum AnalysisStatus {
 enum MessageRole {
   user
   assistant
+}
+
+model Tag {
+  id        String         @id @default(cuid())
+  userId    String
+  name      String
+  color     String         @default("#6366f1")
+  createdAt DateTime       @default(now())
+
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  characters CharacterTag[]
+
+  @@unique([userId, name])
+}
+
+model CharacterTag {
+  characterId String
+  tagId       String
+  createdAt   DateTime @default(now())
+
+  character Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  tag       Tag       @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([characterId, tagId])
 }

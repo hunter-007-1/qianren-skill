@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { Character } from "@/lib/types";
+import { useState } from "react";
+import { Character, Tag } from "@/lib/types";
 import { CharacterCard } from "@/components/character-card";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Plus, Sparkles, LayoutGrid, ArrowRight, Lightbulb, User, Zap, Shield, Clock } from "lucide-react";
+import { Plus, Sparkles, LayoutGrid, ArrowRight, Lightbulb, User, Zap, Shield, Clock, Tag as TagIcon, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import useSWR from "swr";
 import { toast, Toaster } from "react-hot-toast";
@@ -12,12 +13,19 @@ import { toast, Toaster } from "react-hot-toast";
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export default function Home() {
+  const [selectedTagId, setSelectedTagId] = useState<string | null>(null);
   const { data: characters, mutate, isLoading } = useSWR<Character[]>("/api/characters", fetcher, {
     refreshInterval: (data) => {
       const hasRunning = data?.some((c: Character) => c.analysisStatus === "RUNNING");
       return hasRunning ? 3000 : 0;
     },
   });
+
+  const { data: tags } = useSWR<(Tag & { _count: { characters: number } })[]>("/api/tags", fetcher);
+
+  const filteredCharacters = selectedTagId
+    ? characters?.filter((c) => c.characterTags?.some((ct) => ct.tag.id === selectedTagId))
+    : characters;
 
   const handleDelete = async (id: string) => {
     try {
@@ -109,10 +117,47 @@ export default function Home() {
           </div>
           {characters && characters.length > 0 && (
             <div className="rounded-full bg-slate-100 px-4 py-1.5 text-xs font-bold text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-              {characters.length} 个角色
+              {filteredCharacters?.length ?? 0} 个角色
             </div>
           )}
         </div>
+
+        {/* Tag Filter */}
+        {tags && tags.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => setSelectedTagId(null)}
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
+                !selectedTagId
+                  ? "bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400"
+              }`}
+            >
+              全部
+            </button>
+            {tags.map((tag) => (
+              <button
+                key={tag.id}
+                onClick={() =>
+                  setSelectedTagId(selectedTagId === tag.id ? null : tag.id)
+                }
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
+                  selectedTagId === tag.id
+                    ? "text-white shadow-sm"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400"
+                }`}
+                style={
+                  selectedTagId === tag.id
+                    ? { backgroundColor: tag.color }
+                    : undefined
+                }
+              >
+                {tag.name}
+                <span className="opacity-60">{tag._count.characters}</span>
+              </button>
+            ))}
+          </div>
+        )}
 
         {isLoading ? (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -120,7 +165,7 @@ export default function Home() {
               <div key={i} className="h-72 animate-pulse rounded-3xl bg-slate-100 dark:bg-slate-800/50" />
             ))}
           </div>
-        ) : !characters || characters.length === 0 ? (
+        ) : !filteredCharacters || filteredCharacters.length === 0 ? (
           <motion.div 
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -131,18 +176,22 @@ export default function Home() {
               <User className="h-12 w-12 text-slate-300 dark:text-slate-600" />
             </div>
             <h3 className="mt-8 text-xl font-bold text-slate-900 dark:text-white">
-              暂无角色数据
+              {selectedTagId ? "该标签下暂无角色" : "暂无角色数据"}
             </h3>
             <p className="mt-3 max-w-sm text-sm leading-relaxed text-slate-500 dark:text-slate-400">
-              上传聊天记录或文字资料，即可开始生成你的第一个 AI 数字化身。系统将自动分析并提取人格特征。
+              {selectedTagId
+                ? "尝试选择其他标签或创建新角色"
+                : "上传聊天记录或文字资料，即可开始生成你的第一个 AI 数字化身。系统将自动分析并提取人格特征。"}
             </p>
-            <Link 
-              href="/characters/new" 
-              className="mt-8 inline-flex items-center gap-2 rounded-2xl bg-indigo-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-500/25 transition-all hover:bg-indigo-500 hover:shadow-xl active:scale-[0.98]"
-            >
-              <Plus className="h-4 w-4" />
-              创建第一个角色
-            </Link>
+            {!selectedTagId && (
+              <Link 
+                href="/characters/new" 
+                className="mt-8 inline-flex items-center gap-2 rounded-2xl bg-indigo-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-500/25 transition-all hover:bg-indigo-500 hover:shadow-xl active:scale-[0.98]"
+              >
+                <Plus className="h-4 w-4" />
+                创建第一个角色
+              </Link>
+            )}
           </motion.div>
         ) : (
           <motion.div 
@@ -158,7 +207,7 @@ export default function Home() {
             }}
           >
             <AnimatePresence mode="popLayout">
-              {characters.map((item) => (
+              {filteredCharacters?.map((item) => (
                 <CharacterCard 
                   key={item.id} 
                   character={item} 

@@ -81,6 +81,15 @@ export interface Character {
   updatedAt: Date | string;
   sourceDocuments?: SourceDocument[];
   analysis?: (AnalysisResult & { id: string; modelName: string }) | null;
+  tags?: Tag[];
+  characterTags?: { tag: Tag }[];
+}
+
+export interface Tag {
+  id: string;
+  name: string;
+  color: string;
+  createdAt?: Date | string;
 }
 
 export interface ChatMessage {

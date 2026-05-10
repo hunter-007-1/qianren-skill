@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Toaster, toast } from "react-hot-toast";
+import { Plus, X, Tag as TagIcon } from "lucide-react";
 
 type PreviewItem = { filename: string; text: string };
+type Tag = { id: string; name: string; color: string };
 
 const ALLOWED_EXTENSIONS = ["txt", "md", "json", "csv"];
 
@@ -25,11 +27,52 @@ export default function NewCharacterPage() {
   const [preview, setPreview] = useState<PreviewItem[]>([]);
   const [createdId, setCreatedId] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [newTagName, setNewTagName] = useState("");
+  const [showTagInput, setShowTagInput] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/tags")
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) setTags(data);
+      })
+      .catch(() => {});
+  }, []);
 
   const totalBytes = useMemo(
     () => files.reduce((sum, f) => sum + f.size, 0),
     [files],
   );
+
+  const toggleTag = (tagId: string) => {
+    setSelectedTagIds((prev) =>
+      prev.includes(tagId)
+        ? prev.filter((id) => id !== tagId)
+        : [...prev, tagId],
+    );
+  };
+
+  const createTag = async () => {
+    if (!newTagName.trim()) return;
+    try {
+      const res = await fetch("/api/tags", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newTagName.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setTags((prev) => [...prev, data]);
+      setSelectedTagIds((prev) => [...prev, data.id]);
+      setNewTagName("");
+      setShowTagInput(false);
+      toast.success("标签已创建");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "创建失败");
+    }
+  };
 
   const handleAvatarChange = (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -88,6 +131,7 @@ export default function NewCharacterPage() {
       formData.set("avatarUrl", avatarUrl);
       formData.set("userAvatarUrl", userAvatarUrl);
       formData.set("pastedText", pastedText);
+      selectedTagIds.forEach((tagId) => formData.append("tagIds", tagId));
       files.forEach((file) => formData.append("files", file));
 
       const response = await fetch("/api/characters", {
@@ -196,6 +240,81 @@ export default function NewCharacterPage() {
                 className="input mt-1.5"
               />
             </div>
+          </div>
+        </section>
+
+        {/* 标签分组 */}
+        <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
+          <h2 className="flex items-center gap-2 text-base font-semibold text-slate-900">
+            <TagIcon className="h-4 w-4" />
+            标签分组
+          </h2>
+          <p className="mt-1 text-xs text-slate-500">
+            为角色添加标签，方便分类管理（可选）
+          </p>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            {tags.map((tag) => (
+              <button
+                key={tag.id}
+                type="button"
+                onClick={() => toggleTag(tag.id)}
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
+                  selectedTagIds.includes(tag.id)
+                    ? "text-white shadow-sm"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400"
+                }`}
+                style={
+                  selectedTagIds.includes(tag.id)
+                    ? { backgroundColor: tag.color }
+                    : undefined
+                }
+              >
+                {tag.name}
+                {selectedTagIds.includes(tag.id) && (
+                  <X className="h-3 w-3" />
+                )}
+              </button>
+            ))}
+
+            {showTagInput ? (
+              <div className="flex items-center gap-1.5">
+                <input
+                  value={newTagName}
+                  onChange={(e) => setNewTagName(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && createTag()}
+                  placeholder="标签名称"
+                  className="rounded-full border border-slate-200 px-3 py-1.5 text-xs outline-none focus:border-indigo-500 w-24"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={createTag}
+                  className="rounded-full bg-indigo-50 px-2.5 py-1.5 text-xs font-medium text-indigo-600 hover:bg-indigo-100"
+                >
+                  添加
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowTagInput(false);
+                    setNewTagName("");
+                  }}
+                  className="rounded-full p-1.5 text-slate-400 hover:text-slate-600"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowTagInput(true)}
+                className="inline-flex items-center gap-1 rounded-full border border-dashed border-slate-300 px-3 py-1.5 text-xs text-slate-500 hover:border-indigo-400 hover:text-indigo-600"
+              >
+                <Plus className="h-3 w-3" />
+                新建标签
+              </button>
+            )}
           </div>
         </section>
 

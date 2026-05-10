@@ -21,6 +21,9 @@ export async function GET() {
         avatarUrl: true,
         analysisStatus: true,
         createdAt: true,
+        characterTags: {
+          include: { tag: true },
+        },
       },
     });
     return NextResponse.json(characters);
@@ -48,6 +51,7 @@ export async function POST(request: Request) {
     const userAvatarUrl =
       String(formData.get("userAvatarUrl") ?? "").trim() || null;
     const pastedText = String(formData.get("pastedText") ?? "").trim();
+    const tagIds = formData.getAll("tagIds").filter(Boolean) as string[];
 
     const rawFiles = formData
       .getAll("files")
@@ -102,8 +106,11 @@ export async function POST(request: Request) {
         sourceDocuments: {
           create: documents,
         },
+        characterTags: tagIds.length > 0 ? {
+          create: tagIds.map((tagId) => ({ tagId })),
+        } : undefined,
       },
-      include: { sourceDocuments: true },
+      include: { sourceDocuments: true, characterTags: { include: { tag: true } } },
     });
 
     return NextResponse.json({

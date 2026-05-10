@@ -102,14 +102,23 @@ export function CharacterCard({ character, onDelete }: CharacterCardProps) {
           </div>
         </div>
 
-        {/* Status badge */}
-        <div className="px-6 pt-4">
+        {/* Status badge and tags */}
+        <div className="px-6 pt-4 flex flex-wrap gap-1.5">
           <div
             className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${config.color}`}
           >
             <div className={`h-1.5 w-1.5 rounded-full ${config.dot}`} />
             {config.label}
           </div>
+          {character.characterTags?.map((ct) => (
+            <span
+              key={ct.tag.id}
+              className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium text-white"
+              style={{ backgroundColor: ct.tag.color }}
+            >
+              {ct.tag.name}
+            </span>
+          ))}
         </div>
 
         {/* Action buttons */}

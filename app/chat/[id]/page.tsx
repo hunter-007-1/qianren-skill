@@ -19,6 +19,10 @@ import {
   Info,
   ChevronLeft,
   Loader2,
+  Download,
+  Copy,
+  Check,
+  FileText,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CharacterSummary } from "@/components/character-summary";
@@ -33,6 +37,10 @@ export default function ChatPage() {
   const [sending, setSending] = useState(false);
   const [typing, setTyping] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [summarizing, setSummarizing] = useState(false);
+  const [summary, setSummary] = useState<any>(null);
+  const [showSummary, setShowSummary] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -147,6 +155,59 @@ export default function ChatPage() {
     }
   };
 
+  const exportAsTxt = () => {
+    if (!character || messages.length === 0) return;
+
+    const lines = messages.map((msg) => {
+      const time = new Date(msg.createdAt).toLocaleString("zh-CN");
+      const sender = msg.role === "user" ? "我" : character.nickname;
+      return `[${time}] ${sender}：${msg.content}`;
+    });
+
+    const header = `与 ${character.nickname} 的对话记录\n导出时间：${new Date().toLocaleString("zh-CN")}\n共 ${messages.length} 条消息\n${"=".repeat(40)}\n\n`;
+    const text = header + lines.join("\n\n");
+
+    const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `chat-${character.nickname}-${new Date().toISOString().slice(0, 10)}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    toast.success("导出成功");
+  };
+
+  const copyToClipboard = async () => {
+    if (!character || messages.length === 0) return;
+
+    const lines = messages.map((msg) => {
+      const sender = msg.role === "user" ? "我" : character.nickname;
+      return `${sender}：${msg.content}`;
+    });
+
+    await navigator.clipboard.writeText(lines.join("\n\n"));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+    toast.success("已复制到剪贴板");
+  };
+
+  const generateSummary = async () => {
+    if (messages.length === 0) return;
+    setSummarizing(true);
+    try {
+      const res = await fetch(`/api/chat/${id}/summary`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "生成摘要失败");
+      setSummary(data);
+      setShowSummary(true);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "生成摘要失败");
+    } finally {
+      setSummarizing(false);
+    }
+  };
+
   if (!character) {
     return (
       <div className="flex min-h-[80vh] flex-col items-center justify-center space-y-4 text-slate-400">
@@ -233,6 +294,49 @@ export default function ChatPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <button
+                onClick={generateSummary}
+                disabled={summarizing || messages.length === 0}
+                title="生成对话摘要"
+                className="p-2.5 rounded-xl text-slate-400 hover:bg-purple-50 hover:text-purple-600 transition-all dark:hover:bg-purple-600/10 disabled:opacity-20"
+              >
+                {summarizing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <FileText className="h-4 w-4" />
+                )}
+              </button>
+              <div className="relative group">
+                <button
+                  disabled={messages.length === 0}
+                  title="导出对话"
+                  className="p-2.5 rounded-xl text-slate-400 hover:bg-emerald-50 hover:text-emerald-600 transition-all dark:hover:bg-emerald-600/10 disabled:opacity-20"
+                >
+                  <Download className="h-4 w-4" />
+                </button>
+                <div className="absolute right-0 top-full mt-1 hidden group-hover:block z-50">
+                  <div className="rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl dark:border-slate-700 dark:bg-slate-800 min-w-[160px]">
+                    <button
+                      onClick={exportAsTxt}
+                      className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-700"
+                    >
+                      <Download className="h-4 w-4" />
+                      导出为 TXT
+                    </button>
+                    <button
+                      onClick={copyToClipboard}
+                      className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-700"
+                    >
+                      {copied ? (
+                        <Check className="h-4 w-4 text-emerald-500" />
+                      ) : (
+                        <Copy className="h-4 w-4" />
+                      )}
+                      {copied ? "已复制" : "复制到剪贴板"}
+                    </button>
+                  </div>
+                </div>
+              </div>
               <button
                 onClick={clearSession}
                 title="清空会话"
@@ -392,6 +496,106 @@ export default function ChatPage() {
           </footer>
         </section>
       </div>
+
+      {/* Summary Modal */}
+      {showSummary && summary && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-slate-950/50 backdrop-blur-sm"
+            onClick={() => setShowSummary(false)}
+          />
+          <div className="relative w-full max-w-lg max-h-[80vh] overflow-y-auto rounded-3xl bg-white p-8 shadow-2xl dark:bg-slate-900">
+            <button
+              onClick={() => setShowSummary(false)}
+              className="absolute right-5 top-5 rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800"
+            >
+              <span className="sr-only">关闭</span>
+              ✕
+            </button>
+
+            <div className="flex items-center gap-3 mb-6">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-50 text-purple-600 dark:bg-purple-500/10">
+                <FileText className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                  对话摘要
+                </h3>
+                <p className="text-xs text-slate-500">
+                  AI 自动生成的对话总结
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <div>
+                <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                  整体摘要
+                </h4>
+                <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 rounded-xl p-4">
+                  {summary.summary}
+                </p>
+              </div>
+
+              {summary.keyPoints?.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                    关键要点
+                  </h4>
+                  <ul className="space-y-2">
+                    {summary.keyPoints.map((point: string, i: number) => (
+                      <li
+                        key={i}
+                        className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-400"
+                      >
+                        <span className="mt-1 h-1.5 w-1.5 rounded-full bg-indigo-500 shrink-0" />
+                        {point}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {summary.actionItems?.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                    待办事项
+                  </h4>
+                  <ul className="space-y-2">
+                    {summary.actionItems.map((item: string, i: number) => (
+                      <li
+                        key={i}
+                        className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-400"
+                      >
+                        <span className="mt-1 h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {summary.emotionalTone && (
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                    情感基调
+                  </h4>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 rounded-xl p-4">
+                    {summary.emotionalTone}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={() => setShowSummary(false)}
+              className="mt-6 w-full rounded-xl bg-slate-100 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+            >
+              关闭
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
