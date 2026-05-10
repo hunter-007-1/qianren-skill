@@ -12,8 +12,7 @@ export const analysisSchema = z.object({
         emotionalAnchor: z.string().optional().default(""),
         sentiment: z
           .enum(["positive", "neutral", "negative"])
-          .optional()
-          .default("neutral"),
+          .catch("neutral"),
       }),
     )
     .default([]),
@@ -23,12 +22,10 @@ export const analysisSchema = z.object({
     samplePhrases: z.array(z.string()).default([]),
     emojiUsage: z
       .enum(["none", "rare", "moderate", "frequent", "very_frequent"])
-      .optional()
-      .default("moderate"),
+      .catch("moderate"),
     responseSpeed: z
       .enum(["slow", "delayed", "normal", "quick", "immediate"])
-      .optional()
-      .default("normal"),
+      .catch("normal"),
   }),
   emotionPattern: z.object({
     commonEmotions: z.array(z.string()).default([]),
@@ -44,8 +41,7 @@ export const analysisSchema = z.object({
     regulationStyle: z.string().default("未知"),
     emotionalExpressiveness: z
       .enum(["reserved", "moderate", "expressive"])
-      .optional()
-      .default("moderate"),
+      .catch("moderate"),
   }),
   relationshipPattern: z.object({
     attachmentStyle: z.string().default("未知"),

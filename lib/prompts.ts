@@ -21,8 +21,14 @@ export const buildAnalysisPrompt = (input: {
 
 【输出规范】
 1. 仅输出纯 JSON，不要任何 markdown 标记
-2. 所有字段必填，如无信息填"未提供"
-3. memories 数量控制在 5-12 条，优先提取具有情感锚点的事件
+2. 所有字段必填，如无信息请使用合理的默认值：
+   - emojiUsage: "moderate"
+   - responseSpeed: "normal"
+   - emotionalExpressiveness: "moderate"
+   - sentiment: "neutral"
+   - 数组字段填空数组 []
+   - 字符串字段填"未知"或简短描述
+3. memories 数量控制在 2-10 条，信息不足时可减少数量但不要省略
 4. 避免主观评价词汇（如"渣男"、"绿茶"），使用中性描述
 
 【资料类型识别】
