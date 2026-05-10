@@ -47,7 +47,6 @@ export async function POST(
         },
       ],
       temperature: 0.3,
-      response_format: { type: "json_object" },
     });
 
     const content = completion.choices[0]?.message?.content?.trim();
