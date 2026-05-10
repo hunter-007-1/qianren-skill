@@ -46,66 +46,73 @@ export function RegisterForm() {
       <Toaster position="top-right" />
 
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
         className="w-full max-w-md"
       >
         <Link
           href="/"
-          className="mb-8 inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+          className="mb-8 inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition-colors hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
         >
           <ArrowLeft className="h-4 w-4" />
           返回首页
         </Link>
 
-        <div className="flex items-center gap-2 mb-8">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-600/20">
-            <Sparkles className="h-6 w-6" />
-          </div>
-          <div>
-            <h1 className="text-xl font-black tracking-tight text-slate-900 dark:text-white">注册</h1>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Qianren Skill</p>
+        <div className="mb-10">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-500/20">
+              <Sparkles className="h-6 w-6" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                创建账号
+              </h1>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                开始你的数字灵魂之旅
+              </p>
+            </div>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">
-              邮箱
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+              邮箱地址
             </label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="mt-2 block w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:placeholder:text-slate-500"
+              className="input"
               placeholder="your@email.com"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">
-              昵称 <span className="text-slate-400 font-normal">(可选)</span>
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+              昵称 <span className="font-normal text-slate-400">(可选)</span>
             </label>
             <input
               type="text"
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
-              className="mt-2 block w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:placeholder:text-slate-500"
+              className="input"
               placeholder="你的昵称"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">
-              密码 <span className="text-slate-400 font-normal">(至少6位)</span>
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+              密码 <span className="font-normal text-slate-400">(至少6位)</span>
             </label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="mt-2 block w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:placeholder:text-slate-500"
-              placeholder="••••••••"
+              className="input"
+              placeholder="设置你的密码"
               minLength={6}
               required
             />
@@ -114,7 +121,7 @@ export function RegisterForm() {
           <button
             type="submit"
             disabled={loading}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white transition-all hover:bg-blue-500 disabled:opacity-50"
+            className="btn btn-primary btn-lg w-full"
           >
             {loading ? (
               <>
@@ -122,17 +129,19 @@ export function RegisterForm() {
                 注册中...
               </>
             ) : (
-              "注册"
+              "创建账号"
             )}
           </button>
         </form>
 
-        <p className="mt-8 text-center text-sm text-slate-500 dark:text-slate-400">
-          已有账号？{" "}
-          <Link href="/login" className="font-bold text-blue-600 hover:text-blue-700">
-            立即登录
-          </Link>
-        </p>
+        <div className="mt-8 text-center">
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            已有账号？{" "}
+            <Link href="/login" className="font-semibold text-indigo-600 transition-colors hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300">
+              立即登录
+            </Link>
+          </p>
+        </div>
       </motion.div>
     </main>
   );

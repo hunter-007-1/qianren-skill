@@ -39,29 +39,27 @@ export function CharacterCard({ character, onDelete }: CharacterCardProps) {
   const statusConfig = {
     DONE: {
       label: "画像就绪",
-      color:
-        "text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 dark:text-emerald-400",
+      color: "text-emerald-700 bg-emerald-50 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20",
       dot: "bg-emerald-500",
-      icon: <ShieldCheck className="h-3 w-3" />,
+      icon: <ShieldCheck className="h-3.5 w-3.5" />,
     },
     RUNNING: {
       label: "正在分析",
-      color:
-        "text-amber-600 bg-amber-50 dark:bg-amber-500/10 dark:text-amber-400",
+      color: "text-amber-700 bg-amber-50 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20",
       dot: "bg-amber-500 animate-pulse",
-      icon: <Loader2 className="h-3 w-3 animate-spin" />,
+      icon: <Loader2 className="h-3.5 w-3.5 animate-spin" />,
     },
     FAILED: {
       label: "分析失败",
-      color: "text-rose-600 bg-rose-50 dark:bg-rose-500/10 dark:text-rose-400",
+      color: "text-rose-700 bg-rose-50 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20",
       dot: "bg-rose-500",
-      icon: <AlertCircle className="h-3 w-3" />,
+      icon: <AlertCircle className="h-3.5 w-3.5" />,
     },
     NOT_STARTED: {
       label: "等待分析",
-      color: "text-slate-500 bg-slate-50 dark:bg-slate-800 dark:text-slate-400",
+      color: "text-slate-600 bg-slate-50 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700",
       dot: "bg-slate-400",
-      icon: <Clock className="h-3 w-3" />,
+      icon: <Clock className="h-3.5 w-3.5" />,
     },
   };
 
@@ -73,79 +71,90 @@ export function CharacterCard({ character, onDelete }: CharacterCardProps) {
         layout
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        whileHover={{ y: -5 }}
-        className="group relative flex flex-col rounded-[2.5rem] border border-slate-200 bg-white p-6 shadow-sm transition-all hover:border-blue-300 hover:shadow-xl dark:border-slate-800 dark:bg-slate-900"
+        whileHover={{ y: -4 }}
+        className="group relative flex flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition-all duration-200 hover:border-indigo-200 hover:shadow-lg hover:shadow-indigo-500/5 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-indigo-500/20"
       >
-        <div className="flex items-center gap-5">
-          <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl bg-slate-100 ring-4 ring-slate-50 dark:bg-slate-800 dark:ring-slate-800/50">
-            {character.avatarUrl ? (
-              <img
-                src={character.avatarUrl}
-                alt={character.nickname}
-                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-              />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-blue-500 to-indigo-600 text-2xl font-black text-white">
-                {character.nickname[0]}
-              </div>
-            )}
-          </div>
-          <div className="min-w-0 flex-1">
-            <h3 className="truncate text-xl font-black text-slate-900 tracking-tight dark:text-white">
-              {character.nickname}
-            </h3>
-            <p className="mt-1 flex items-center gap-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-              <User className="h-3 w-3" />
-              AUTHENTICATED {new Date(character.createdAt).getFullYear()}
-            </p>
+        {/* Card header with avatar */}
+        <div className="p-6 pb-0">
+          <div className="flex items-center gap-4">
+            <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-2xl bg-slate-100 ring-2 ring-slate-100 dark:bg-slate-800 dark:ring-slate-800">
+              {character.avatarUrl ? (
+                <img
+                  src={character.avatarUrl}
+                  alt={character.nickname}
+                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600 text-xl font-black text-white">
+                  {character.nickname[0]}
+                </div>
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <h3 className="truncate text-lg font-bold tracking-tight text-slate-900 dark:text-white">
+                {character.nickname}
+              </h3>
+              <p className="mt-0.5 flex items-center gap-1.5 text-[11px] font-medium text-slate-400 dark:text-slate-500">
+                <User className="h-3 w-3" />
+                {new Date(character.createdAt).toLocaleDateString("zh-CN")}
+              </p>
+            </div>
           </div>
         </div>
 
-        <div className="mt-6 flex flex-wrap gap-2">
+        {/* Status badge */}
+        <div className="px-6 pt-4">
           <div
-            className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-widest ${config.color}`}
+            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${config.color}`}
           >
             <div className={`h-1.5 w-1.5 rounded-full ${config.dot}`} />
             {config.label}
           </div>
         </div>
 
-        <div className="mt-8 grid grid-cols-2 gap-3">
-          <Link
-            href={`/analysis/${character.id}`}
-            className="flex items-center justify-center gap-2 rounded-2xl border-2 border-slate-200 py-3 text-xs font-black uppercase tracking-widest text-slate-700 transition-all hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
-          >
-            <BarChart3 className="h-4 w-4" />
-            查看画像
-          </Link>
-          <Link
-            href={`/chat/${character.id}`}
-            className={`flex items-center justify-center gap-2 rounded-2xl py-3 text-xs font-black uppercase tracking-widest transition-all ${
-              character.analysisStatus === "DONE"
-                ? "bg-blue-600 text-white hover:bg-blue-500 hover:shadow-lg hover:shadow-blue-600/30"
-                : "bg-slate-100 text-slate-400 cursor-not-allowed dark:bg-slate-800 dark:text-slate-600"
-            }`}
-          >
-            <MessageSquare className="h-4 w-4" />
-            开启聊天
-          </Link>
+        {/* Action buttons */}
+        <div className="p-6 pt-4">
+          <div className="grid grid-cols-2 gap-2.5">
+            <Link
+              href={`/analysis/${character.id}`}
+              className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white py-2.5 text-xs font-semibold text-slate-700 transition-all hover:bg-slate-50 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-750 dark:hover:border-slate-600"
+            >
+              <BarChart3 className="h-3.5 w-3.5" />
+              查看画像
+            </Link>
+            <Link
+              href={`/chat/${character.id}`}
+              className={`flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-semibold transition-all ${
+                character.analysisStatus === "DONE"
+                  ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/20 hover:bg-indigo-500 hover:shadow-lg hover:shadow-indigo-500/30 active:scale-[0.98]"
+                  : "bg-slate-100 text-slate-400 cursor-not-allowed dark:bg-slate-800 dark:text-slate-600"
+              }`}
+            >
+              <MessageSquare className="h-3.5 w-3.5" />
+              开启聊天
+            </Link>
+          </div>
         </div>
 
-        <div className="mt-5 grid grid-cols-2 gap-3 border-t border-slate-100 pt-5 dark:border-slate-800/50">
-          <Link
-            href={`/characters/${character.id}/edit`}
-            className="flex items-center justify-center gap-2 rounded-xl py-2 text-[10px] font-black uppercase tracking-widest text-slate-500 transition-colors hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400"
-          >
-            <Pencil className="h-3 w-3" />
-            修改资料
-          </Link>
-          <button
-            onClick={() => setIsDeleteModalOpen(true)}
-            className="flex items-center justify-center gap-2 rounded-xl py-2 text-[10px] font-black uppercase tracking-widest text-slate-500 transition-colors hover:text-rose-500 dark:text-slate-400 dark:hover:text-rose-400"
-          >
-            <Trash2 className="h-3 w-3" />
-            删除角色
-          </button>
+        {/* Footer actions */}
+        <div className="border-t border-slate-100 px-6 py-4 dark:border-slate-800/60">
+          <div className="flex items-center justify-center gap-6">
+            <Link
+              href={`/characters/${character.id}/edit`}
+              className="flex items-center gap-1.5 text-[11px] font-medium text-slate-400 transition-colors hover:text-indigo-600 dark:text-slate-500 dark:hover:text-indigo-400"
+            >
+              <Pencil className="h-3 w-3" />
+              编辑
+            </Link>
+            <div className="h-3 w-px bg-slate-200 dark:bg-slate-700" />
+            <button
+              onClick={() => setIsDeleteModalOpen(true)}
+              className="flex items-center gap-1.5 text-[11px] font-medium text-slate-400 transition-colors hover:text-rose-500 dark:text-slate-500 dark:hover:text-rose-400"
+            >
+              <Trash2 className="h-3 w-3" />
+              删除
+            </button>
+          </div>
         </div>
       </motion.article>
 
@@ -156,7 +165,7 @@ export function CharacterCard({ character, onDelete }: CharacterCardProps) {
         isLoading={isDeleting}
         type="danger"
         title="删除确认"
-        description={`确定要删除“${character.nickname}”吗？此操作将永久移除所有相关的聊天记录和分析报告，且无法恢复。`}
+        description={`确定要删除"${character.nickname}"吗？此操作将永久移除所有相关的聊天记录和分析报告，且无法恢复。`}
         confirmText="确认删除"
       />
     </>
