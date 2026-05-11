@@ -56,6 +56,10 @@ export async function POST(
       messages: [
         {
           role: "system",
+          content: "你是一个对话摘要助手，负责从对话中提取关键信息、要点和情感基调。请严格按照要求的 JSON 格式输出。",
+        },
+        {
+          role: "user",
           content: buildSummaryPrompt(character.nickname, truncatedContent),
         },
       ],
