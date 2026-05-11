@@ -23,6 +23,8 @@ import {
   Copy,
   Check,
   FileText,
+  FileCode,
+  FileDown,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CharacterSummary } from "@/components/character-summary";
@@ -192,6 +194,150 @@ export default function ChatPage() {
     toast.success("已复制到剪贴板");
   };
 
+  const exportAsHtml = () => {
+    if (!character || messages.length === 0) return;
+
+    const html = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>与 ${character.nickname} 的对话记录</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background: #f5f5f5; padding: 20px; }
+    .container { max-width: 800px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow: hidden; }
+    .header { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; padding: 30px; }
+    .header h1 { font-size: 24px; margin-bottom: 8px; }
+    .header p { font-size: 14px; opacity: 0.9; }
+    .messages { padding: 20px; }
+    .message { margin-bottom: 16px; display: flex; gap: 12px; }
+    .message.user { flex-direction: row-reverse; }
+    .avatar { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px; flex-shrink: 0; }
+    .message.user .avatar { background: #3b82f6; color: white; }
+    .message.assistant .avatar { background: #1e293b; color: #818cf8; }
+    .bubble { max-width: 70%; padding: 12px 16px; border-radius: 16px; font-size: 14px; line-height: 1.6; }
+    .message.user .bubble { background: #3b82f6; color: white; border-bottom-right-radius: 4px; }
+    .message.assistant .bubble { background: #f1f5f9; color: #1e293b; border-bottom-left-radius: 4px; }
+    .time { font-size: 11px; color: #94a3b8; margin-top: 4px; }
+    .message.user .time { text-align: right; }
+    .footer { text-align: center; padding: 20px; color: #94a3b8; font-size: 12px; border-top: 1px solid #e2e8f0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>与 ${character.nickname} 的对话记录</h1>
+      <p>导出时间：${new Date().toLocaleString("zh-CN")} · 共 ${messages.length} 条消息</p>
+    </div>
+    <div class="messages">
+      ${messages.map(msg => `
+        <div class="message ${msg.role}">
+          <div class="avatar">${msg.role === "user" ? "我" : character.nickname[0]}</div>
+          <div>
+            <div class="bubble">${msg.content.replace(/\n/g, '<br>')}</div>
+            <div class="time">${new Date(msg.createdAt).toLocaleString("zh-CN")}</div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+    <div class="footer">
+      由千人智聊生成 · Digital Soul Lab
+    </div>
+  </div>
+</body>
+</html>`;
+
+    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `chat-${character.nickname}-${new Date().toISOString().slice(0, 10)}.html`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    toast.success("HTML 导出成功");
+  };
+
+  const exportAsPdf = async () => {
+    if (!character || messages.length === 0) return;
+
+    // 动态加载 jsPDF
+    const { default: jsPDF } = await import('jspdf');
+
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4',
+    });
+
+    // 设置中文字体（使用内置字体）
+    doc.setFont('helvetica');
+
+    let y = 20;
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 20;
+    const maxWidth = pageWidth - margin * 2;
+
+    // 标题
+    doc.setFontSize(20);
+    doc.setTextColor(99, 102, 241);
+    doc.text(`Chat with ${character.nickname}`, margin, y);
+    y += 10;
+
+    // 导出信息
+    doc.setFontSize(10);
+    doc.setTextColor(148, 163, 184);
+    doc.text(`Export: ${new Date().toLocaleString("zh-CN")} | ${messages.length} messages`, margin, y);
+    y += 5;
+
+    // 分隔线
+    doc.setDrawColor(226, 232, 240);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 10;
+
+    // 消息内容
+    for (const msg of messages) {
+      const sender = msg.role === "user" ? "Me" : character.nickname;
+      const time = new Date(msg.createdAt).toLocaleString("zh-CN");
+
+      // 检查是否需要换页
+      if (y > 270) {
+        doc.addPage();
+        y = 20;
+      }
+
+      // 发送者和时间
+      doc.setFontSize(10);
+      if (msg.role === "user") {
+        doc.setTextColor(59, 130, 246);
+      } else {
+        doc.setTextColor(99, 102, 241);
+      }
+      doc.text(`[${time}] ${sender}:`, margin, y);
+      y += 5;
+
+      // 消息内容
+      doc.setFontSize(11);
+      doc.setTextColor(30, 41, 59);
+      const lines = doc.splitTextToSize(msg.content, maxWidth - 10);
+      doc.text(lines, margin + 5, y);
+      y += lines.length * 5 + 8;
+    }
+
+    // 页脚
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(9);
+      doc.setTextColor(148, 163, 184);
+      doc.text('Digital Soul Lab', pageWidth / 2, 290, { align: 'center' });
+    }
+
+    doc.save(`chat-${character.nickname}-${new Date().toISOString().slice(0, 10)}.pdf`);
+    toast.success("PDF 导出成功");
+  };
+
   const generateSummary = async () => {
     if (messages.length === 0) return;
     setSummarizing(true);
@@ -315,14 +461,29 @@ export default function ChatPage() {
                   <Download className="h-4 w-4" />
                 </button>
                 <div className="absolute right-0 top-full mt-1 hidden group-hover:block z-50">
-                  <div className="rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl dark:border-slate-700 dark:bg-slate-800 min-w-[160px]">
+                  <div className="rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl dark:border-slate-700 dark:bg-slate-800 min-w-[180px]">
                     <button
                       onClick={exportAsTxt}
                       className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-700"
                     >
-                      <Download className="h-4 w-4" />
+                      <FileText className="h-4 w-4" />
                       导出为 TXT
                     </button>
+                    <button
+                      onClick={exportAsHtml}
+                      className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-700"
+                    >
+                      <FileCode className="h-4 w-4" />
+                      导出为 HTML
+                    </button>
+                    <button
+                      onClick={exportAsPdf}
+                      className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-700"
+                    >
+                      <FileDown className="h-4 w-4" />
+                      导出为 PDF
+                    </button>
+                    <div className="my-1 h-px bg-slate-200 dark:bg-slate-700" />
                     <button
                       onClick={copyToClipboard}
                       className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-700"
