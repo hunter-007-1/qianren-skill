@@ -282,3 +282,75 @@ export const buildSummaryPrompt = (
 【对话记录】
 ${messages}`;
 };
+
+// ============================================================
+// 记忆更新 Prompt - 基于对话更新人物画像
+// ============================================================
+export const buildMemoryUpdatePrompt = (
+  currentAnalysis: AnalysisResult,
+  recentMessages: { role: string; content: string }[],
+  nickname: string,
+) => {
+  const messagesText = recentMessages
+    .map((m) => `${m.role === "user" ? "用户" : nickname}：${m.content}`)
+    .join("\n");
+
+  return `【任务】你是一个人物画像分析师。基于以下对话记录，更新"${nickname}"的人物画像。
+
+【当前画像】
+${JSON.stringify(currentAnalysis, null, 2)}
+
+【最近对话】
+${messagesText}
+
+【更新规则】
+1. **persona** - 如果发现新的性格特质，添加到 traits 数组；更新 summary（如果有必要）
+2. **memories** - 保留原有重要记忆，添加新发现的关键事件；按重要性排序，最多 20 条
+3. **speakingStyle** - 如果发现新的语言习惯，更新对应字段
+4. **emotionPattern** - 如果发现新的情绪触发点，更新 triggers
+5. **relationshipPattern** - 如果发现关系变化，更新对应字段
+
+【重要性评分标准】
+- 高：用户明确表达的偏好、重要人生事件、情感转折点
+- 中：重复出现的行为模式、态度变化
+- 低：日常寒暄、一次性话题
+
+【输出规范】
+1. 仅输出纯 JSON，不要任何 markdown 标记
+2. 输出完整的 JSON，结构与当前画像相同
+3. 不要省略任何字段
+
+【输出格式】
+{
+  "persona": {
+    "summary": "更新后的概述",
+    "traits": ["特质1", "特质2"]
+  },
+  "memories": [
+    {"event": "事件描述", "emotionalAnchor": "情感印记", "sentiment": "positive|neutral|negative"}
+  ],
+  "speakingStyle": {
+    "tone": ["语气特点"],
+    "habits": ["语言习惯"],
+    "samplePhrases": ["常用表达"],
+    "emojiUsage": "none|rare|moderate|frequent|very_frequent",
+    "responseSpeed": "slow|delayed|normal|quick|immediate"
+  },
+  "emotionPattern": {
+    "commonEmotions": ["常见情绪"],
+    "triggers": {
+      "positive": ["正面触发"],
+      "negative": ["负面触发"]
+    },
+    "regulationStyle": "情绪调节方式",
+    "emotionalExpressiveness": "reserved|moderate|expressive"
+  },
+  "relationshipPattern": {
+    "attachmentStyle": "依恋类型",
+    "interactionDynamics": ["互动特点"],
+    "boundaries": ["边界"],
+    "conflictStyle": "冲突处理方式",
+    "careExpression": "关心方式"
+  }
+}`;
+};

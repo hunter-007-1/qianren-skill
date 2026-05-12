@@ -3,6 +3,7 @@ import { getModelName, getOpenAIClient } from "@/lib/ai-client";
 import { prisma } from "@/lib/db";
 import { buildChatSystemPrompt } from "@/lib/prompts";
 import { analysisSchema, type AnalysisResult } from "@/lib/types";
+import { updateCharacterMemory } from "@/lib/services/memory-service";
 
 const toAnalysisResult = (analysis: {
   persona: Prisma.JsonValue;
@@ -49,6 +50,16 @@ export const generateReply = async (
       content: userMessage,
     },
   });
+
+  // 每 10 条消息自动触发记忆更新（异步，不阻塞回复）
+  const messageCount = await prisma.chatMessage.count({
+    where: { characterId },
+  });
+  if (messageCount % 10 === 0 && messageCount >= 10) {
+    updateCharacterMemory(characterId).catch((err) =>
+      console.error("自动记忆更新失败:", err),
+    );
+  }
 
   const client = getOpenAIClient();
   const completion = await client.chat.completions.create({

@@ -69,8 +69,8 @@ model SourceDocument {
 }
 
 model Analysis {
-  id                  String   @id @default(cuid())
-  characterId         String   @unique
+  id                  String    @id @default(cuid())
+  characterId         String    @unique
   persona             Json
   memories            Json
   speakingStyle       Json
@@ -78,8 +78,10 @@ model Analysis {
   relationshipPattern Json
   rawResponse         String
   modelName           String
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  lastMemoryUpdate    DateTime?
+  memoryVersion       Int       @default(0)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
   character Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
 }

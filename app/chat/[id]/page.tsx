@@ -28,6 +28,7 @@ import {
   FileDown,
   Search,
   X,
+  Brain,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CharacterSummary } from "@/components/character-summary";
@@ -49,6 +50,7 @@ export default function ChatPage() {
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchRole, setSearchRole] = useState<"all" | "user" | "assistant">("all");
+  const [updatingMemory, setUpdatingMemory] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -396,6 +398,24 @@ export default function ChatPage() {
     }
   };
 
+  const updateMemory = async () => {
+    if (messages.length < 5) {
+      toast.error("对话记录不足，至少需要 5 条消息");
+      return;
+    }
+    setUpdatingMemory(true);
+    try {
+      const res = await fetch(`/api/chat/${id}/update-memory`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "记忆更新失败");
+      toast.success("角色记忆已更新");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "记忆更新失败");
+    } finally {
+      setUpdatingMemory(false);
+    }
+  };
+
   if (!character) {
     return (
       <div className="flex min-h-[80vh] flex-col items-center justify-center space-y-4 text-slate-400">
@@ -498,6 +518,18 @@ export default function ChatPage() {
                 }`}
               >
                 {showSearch ? <X className="h-4 w-4" /> : <Search className="h-4 w-4" />}
+              </button>
+              <button
+                onClick={updateMemory}
+                disabled={updatingMemory || messages.length < 5}
+                title="更新角色记忆"
+                className="p-2.5 rounded-xl text-slate-400 hover:bg-amber-50 hover:text-amber-600 transition-all dark:hover:bg-amber-600/10 disabled:opacity-20"
+              >
+                {updatingMemory ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Brain className="h-4 w-4" />
+                )}
               </button>
               <button
                 onClick={generateSummary}
