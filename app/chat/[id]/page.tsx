@@ -51,6 +51,7 @@ export default function ChatPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchRole, setSearchRole] = useState<"all" | "user" | "assistant">("all");
   const [updatingMemory, setUpdatingMemory] = useState(false);
+  const [exportingMemory, setExportingMemory] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -411,13 +412,106 @@ export default function ChatPage() {
       const newCount = data.newMemories?.length ?? 0;
       const totalCount = data.memoryCount ?? 0;
       toast.success(
-        `记忆已更新！新增 ${newCount} 条记忆，共 ${totalCount} 条`,
-        { duration: 4000 }
+        (t) => (
+          <div className="flex flex-col gap-1">
+            <div className="font-bold">记忆更新完成！</div>
+            <div className="text-sm">
+              新增 {newCount} 条记忆，共 {totalCount} 条
+            </div>
+            <div className="text-xs text-slate-500">
+              角色画像已同步更新
+            </div>
+          </div>
+        ),
+        { duration: 5000 }
       );
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "记忆更新失败");
     } finally {
       setUpdatingMemory(false);
+    }
+  };
+
+  const exportMemoryFile = async () => {
+    if (!character) return;
+    setExportingMemory(true);
+    try {
+      const res = await fetch(`/api/chat/${id}/memories`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "导出失败");
+
+      const memories = data.memories || [];
+      const nickname = data.nickname || character.nickname;
+
+      // 生成 TXT 内容
+      const grouped: Record<string, typeof memories> = {
+        偏好: [],
+        事件: [],
+        情感: [],
+        习惯: [],
+        关系: [],
+      };
+
+      memories.forEach((m: any) => {
+        const cat = grouped[m.category] ? m.category : "事件";
+        grouped[cat].push(m);
+      });
+
+      const now = new Date().toLocaleString("zh-CN");
+      let txt = `==========================================\n`;
+      txt += `  ${nickname} 的记忆档案\n`;
+      txt += `==========================================\n\n`;
+      txt += `最后更新: ${now}\n`;
+      txt += `记忆总数: ${memories.length} 条\n\n`;
+      txt += `------------------------------------------\n`;
+      txt += `  记忆概览\n`;
+      txt += `------------------------------------------\n`;
+      Object.entries(grouped).forEach(([cat, items]) => {
+        txt += `  ${cat}: ${(items as any[]).length} 条\n`;
+      });
+      txt += `\n------------------------------------------\n`;
+      txt += `  详细记忆\n`;
+      txt += `------------------------------------------\n\n`;
+
+      Object.entries(grouped).forEach(([cat, items]) => {
+        if ((items as any[]).length > 0) {
+          txt += `【${cat}】\n\n`;
+          (items as any[])
+            .sort((a, b) => b.importance - a.importance)
+            .forEach((m, i) => {
+              const sentimentText =
+                m.sentiment === "positive"
+                  ? "积极"
+                  : m.sentiment === "negative"
+                    ? "消极"
+                    : "中性";
+              const anchor = m.emotionalAnchor
+                ? `\n    情感印记: ${m.emotionalAnchor}`
+                : "";
+              txt += `  ${i + 1}. ${m.content}\n`;
+              txt += `     重要性: ${m.importance}/10 | 情感: ${sentimentText}${anchor}\n\n`;
+            });
+        }
+      });
+
+      txt += `==========================================\n`;
+      txt += `  千人智聊 · 数字灵魂实验室\n`;
+      txt += `==========================================\n`;
+
+      // 下载文件
+      const blob = new Blob([txt], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `记忆档案-${nickname}-${new Date().toISOString().slice(0, 10)}.txt`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      toast.success("记忆文件导出成功");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "导出失败");
+    } finally {
+      setExportingMemory(false);
     }
   };
 
@@ -590,6 +684,19 @@ export default function ChatPage() {
                         <Copy className="h-4 w-4" />
                       )}
                       {copied ? "已复制" : "复制到剪贴板"}
+                    </button>
+                    <div className="my-1 h-px bg-slate-200 dark:bg-slate-700" />
+                    <button
+                      onClick={exportMemoryFile}
+                      disabled={exportingMemory}
+                      className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-700"
+                    >
+                      {exportingMemory ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Brain className="h-4 w-4" />
+                      )}
+                      导出记忆档案
                     </button>
                   </div>
                 </div>

@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Toaster, toast } from "react-hot-toast";
 import {
   ArrowLeft,
+  ArrowRight,
   Sparkles,
   MessageSquare,
   Database,
@@ -287,13 +288,17 @@ export default function AnalysisPage() {
                 <p className="mt-4 max-w-sm text-sm font-medium text-slate-500 leading-relaxed dark:text-slate-400">
                   点击下方按钮，我们将利用大语言模型对您上传的原始资料进行多维度结构化分析，构建详细的数字人格报告。
                 </p>
-                <button
-                  onClick={runAnalysis}
-                  className="group mt-10 flex items-center gap-3 rounded-full bg-slate-900 px-10 py-5 text-sm font-black text-white transition-all hover:bg-blue-600 hover:shadow-2xl hover:shadow-blue-600/20 active:scale-95 dark:bg-white dark:text-slate-900 dark:hover:bg-blue-500 dark:hover:text-white"
-                >
-                  <Sparkles className="h-4 w-4 transition-transform group-hover:rotate-12" />
-                  开启深度画像分析
-                </button>
+                <div className="relative mt-10">
+                  <div className="absolute inset-0 rounded-full bg-blue-500 animate-ping opacity-20" />
+                  <button
+                    onClick={runAnalysis}
+                    className="group relative flex items-center gap-4 rounded-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 px-14 py-6 text-lg font-black text-white shadow-2xl shadow-blue-500/30 transition-all hover:scale-105 hover:shadow-blue-500/50 active:scale-95"
+                  >
+                    <Sparkles className="h-6 w-6 transition-transform group-hover:rotate-12" />
+                    开启深度画像分析
+                    <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+                  </button>
+                </div>
               </motion.div>
             )
           ) : (

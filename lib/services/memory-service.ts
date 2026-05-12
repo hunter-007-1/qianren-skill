@@ -28,7 +28,7 @@ const parseJsonFromModel = (output: string) => {
   }
 };
 
-function generateMemoryMarkdown(
+function generateMemoryText(
   memories: {
     content: string;
     category: string;
@@ -52,38 +52,47 @@ function generateMemoryMarkdown(
     grouped[cat].push(m);
   });
 
-  let md = `# ${nickname} 的记忆档案\n\n`;
-  md += `> 最后更新: ${now}  \n`;
-  md += `> 记忆总数: ${memories.length} 条\n\n`;
-  md += `## 记忆概览\n\n`;
-  md += `| 分类 | 数量 |\n|------|------|\n`;
+  let txt = `==========================================\n`;
+  txt += `  ${nickname} 的记忆档案\n`;
+  txt += `==========================================\n\n`;
+  txt += `最后更新: ${now}\n`;
+  txt += `记忆总数: ${memories.length} 条\n\n`;
+  txt += `------------------------------------------\n`;
+  txt += `  记忆概览\n`;
+  txt += `------------------------------------------\n`;
   Object.entries(grouped).forEach(([cat, items]) => {
-    md += `| ${cat} | ${items.length} |\n`;
+    txt += `  ${cat}: ${items.length} 条\n`;
   });
-  md += `\n## 详细记忆\n\n`;
+  txt += `\n`;
+  txt += `------------------------------------------\n`;
+  txt += `  详细记忆\n`;
+  txt += `------------------------------------------\n\n`;
 
   Object.entries(grouped).forEach(([cat, items]) => {
     if (items.length > 0) {
-      md += `### ${cat}\n\n`;
+      txt += `【${cat}】\n\n`;
       items.sort((a, b) => b.importance - a.importance);
       items.forEach((m, i) => {
-        const sentimentEmoji =
+        const sentimentText =
           m.sentiment === "positive"
-            ? "😊"
+            ? "积极"
             : m.sentiment === "negative"
-              ? "😔"
-              : "😐";
+              ? "消极"
+              : "中性";
         const anchor = m.emotionalAnchor
-          ? ` — 情感印记: ${m.emotionalAnchor}`
+          ? `\n    情感印记: ${m.emotionalAnchor}`
           : "";
-        md += `${i + 1}. ${sentimentEmoji} ${m.content}  \n`;
-        md += `   - 重要性: ${m.importance}/10${anchor}\n`;
+        txt += `  ${i + 1}. ${m.content}\n`;
+        txt += `     重要性: ${m.importance}/10 | 情感: ${sentimentText}${anchor}\n\n`;
       });
-      md += `\n`;
     }
   });
 
-  return md;
+  txt += `==========================================\n`;
+  txt += `  千人智聊 · 数字灵魂实验室\n`;
+  txt += `==========================================\n`;
+
+  return txt;
 }
 
 export async function updateCharacterMemory(characterId: string) {
@@ -166,8 +175,8 @@ export async function updateCharacterMemory(characterId: string) {
     take: 50,
   });
 
-  // Step 4: 生成 Markdown 记忆文件
-  const markdown = generateMemoryMarkdown(
+  // Step 4: 生成 TXT 记忆文件
+  const textContent = generateMemoryText(
     allMemories.map((m) => ({
       content: m.content,
       category: m.category,
@@ -182,22 +191,22 @@ export async function updateCharacterMemory(characterId: string) {
   const existingMemoryFile = await prisma.sourceDocument.findFirst({
     where: {
       characterId,
-      filename: "记忆档案.md",
+      filename: "记忆档案.txt",
     },
   });
 
   if (existingMemoryFile) {
     await prisma.sourceDocument.update({
       where: { id: existingMemoryFile.id },
-      data: { content: markdown },
+      data: { content: textContent },
     });
   } else {
     await prisma.sourceDocument.create({
       data: {
         characterId,
-        filename: "记忆档案.md",
-        fileType: "text/markdown",
-        content: markdown,
+        filename: "记忆档案.txt",
+        fileType: "text/plain",
+        content: textContent,
       },
     });
   }
