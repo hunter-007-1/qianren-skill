@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import {
   useCallback,
   useEffect,
+  useMemo,
   useState,
   useRef,
   type KeyboardEvent,
@@ -25,6 +26,8 @@ import {
   FileText,
   FileCode,
   FileDown,
+  Search,
+  X,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CharacterSummary } from "@/components/character-summary";
@@ -43,11 +46,50 @@ export default function ChatPage() {
   const [summarizing, setSummarizing] = useState(false);
   const [summary, setSummary] = useState<any>(null);
   const [showSummary, setShowSummary] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchRole, setSearchRole] = useState<"all" | "user" | "assistant">("all");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
+
+  const filteredMessages = useMemo(() => {
+    let result = messages;
+    if (searchRole !== "all") {
+      result = result.filter((m) => m.role === searchRole);
+    }
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter((m) => m.content.toLowerCase().includes(query));
+    }
+    return result;
+  }, [messages, searchQuery, searchRole]);
+
+  const displayMessages = showSearch ? filteredMessages : messages;
+
+  const highlightText = useCallback(
+    (text: string): React.ReactNode => {
+      if (!searchQuery.trim()) return text;
+      const escaped = searchQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const regex = new RegExp(`(${escaped})`, "gi");
+      const parts = text.split(regex);
+      return parts.map((part, i) =>
+        regex.test(part) ? (
+          <mark
+            key={i}
+            className="bg-yellow-200 dark:bg-yellow-900/50 rounded px-0.5"
+          >
+            {part}
+          </mark>
+        ) : (
+          part
+        )
+      );
+    },
+    [searchQuery]
+  );
 
   const load = useCallback(async () => {
     try {
@@ -441,6 +483,23 @@ export default function ChatPage() {
             </div>
             <div className="flex items-center gap-2">
               <button
+                onClick={() => {
+                  setShowSearch(!showSearch);
+                  if (showSearch) {
+                    setSearchQuery("");
+                    setSearchRole("all");
+                  }
+                }}
+                title="搜索聊天记录"
+                className={`p-2.5 rounded-xl transition-all ${
+                  showSearch
+                    ? "bg-blue-50 text-blue-600 dark:bg-blue-600/10"
+                    : "text-slate-400 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-600/10"
+                }`}
+              >
+                {showSearch ? <X className="h-4 w-4" /> : <Search className="h-4 w-4" />}
+              </button>
+              <button
                 onClick={generateSummary}
                 disabled={summarizing || messages.length === 0}
                 title="生成对话摘要"
@@ -516,6 +575,65 @@ export default function ChatPage() {
             </div>
           </header>
 
+          {/* Search Bar */}
+          <AnimatePresence>
+            {showSearch && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="border-b border-slate-100 px-8 py-4 dark:border-slate-800 overflow-hidden"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <input
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="搜索聊天记录..."
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 pl-11 pr-10 py-3 text-sm font-medium text-slate-900 outline-none focus:border-blue-500 focus:bg-white dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:focus:border-blue-500 placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                      autoFocus
+                    />
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery("")}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700"
+                      >
+                        <X className="h-4 w-4 text-slate-400" />
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex items-center rounded-xl border border-slate-200 bg-slate-50 p-1 dark:border-slate-700 dark:bg-slate-800">
+                    {(
+                      [
+                        { value: "all", label: "全部" },
+                        { value: "user", label: "用户" },
+                        { value: "assistant", label: "助手" },
+                      ] as const
+                    ).map((option) => (
+                      <button
+                        key={option.value}
+                        onClick={() => setSearchRole(option.value)}
+                        className={`px-3 py-2 text-xs font-bold rounded-lg transition-all ${
+                          searchRole === option.value
+                            ? "bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-white"
+                            : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {searchQuery && (
+                  <div className="mt-3 text-xs font-bold text-slate-500 dark:text-slate-400">
+                    找到 {filteredMessages.length} 条结果
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <div className="flex-1 space-y-8 overflow-y-auto p-8 scroll-smooth scrollbar-hide">
             <AnimatePresence mode="popLayout">
               {messages.length === 0 ? (
@@ -535,8 +653,24 @@ export default function ChatPage() {
                     的所有特质，试着说点什么...
                   </p>
                 </motion.div>
+              ) : showSearch && filteredMessages.length === 0 ? (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex h-full flex-col items-center justify-center text-center opacity-40"
+                >
+                  <div className="h-20 w-20 flex items-center justify-center rounded-[2rem] bg-slate-50 dark:bg-slate-800 mb-6">
+                    <Search className="h-10 w-10 text-slate-400" />
+                  </div>
+                  <h4 className="text-xl font-black text-slate-900 dark:text-white">
+                    未找到匹配结果
+                  </h4>
+                  <p className="mt-2 max-w-xs text-sm font-medium text-slate-500 dark:text-slate-400">
+                    尝试使用不同的关键词或筛选条件
+                  </p>
+                </motion.div>
               ) : (
-                messages.map((message) => (
+                displayMessages.map((message) => (
                   <motion.div
                     layout
                     initial={{ opacity: 0, y: 10, scale: 0.95 }}
@@ -580,7 +714,9 @@ export default function ChatPage() {
                               : "bg-slate-50 text-slate-800 border border-slate-100 rounded-[1.5rem] rounded-tl-none dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
                           }`}
                         >
-                          {message.content}
+                          {showSearch && searchQuery
+                            ? highlightText(message.content)
+                            : message.content}
                         </div>
                         <p
                           className={`text-[9px] font-black uppercase tracking-widest text-slate-300 dark:text-slate-600 ${message.role === "user" ? "text-right" : "text-left"}`}
