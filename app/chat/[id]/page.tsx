@@ -813,7 +813,15 @@ export default function ChatPage() {
                     <div
                       className={`flex max-w-[85%] items-start gap-4 ${message.role === "user" ? "flex-row-reverse text-right" : "flex-row"}`}
                     >
-                      <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-2xl shadow-lg ring-2 ring-white dark:ring-slate-800">
+                      <div
+                        className={`relative h-10 w-10 shrink-0 overflow-hidden rounded-2xl shadow-lg ring-2 ring-white dark:ring-slate-800 cursor-pointer transition-all ${
+                          message.role === "user"
+                            ? "hover:ring-blue-400 hover:scale-110"
+                            : "hover:ring-indigo-400 hover:scale-110"
+                        }`}
+                        onClick={() => message.role === "user" ? router.push("/profile") : router.push(`/analysis/${id}`)}
+                        title={message.role === "user" ? "个人中心" : "画像分析"}
+                      >
                         {message.role === "user" ? (
                           character.userAvatarUrl ? (
                             <img
