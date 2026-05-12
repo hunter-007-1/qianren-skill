@@ -19,6 +19,7 @@ export type AuthUser = {
   id: string;
   email: string;
   nickname: string | null;
+  avatarUrl: string | null;
   isAdmin: boolean;
 };
 
@@ -98,6 +99,7 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
           id: true,
           email: true,
           nickname: true,
+          avatarUrl: true,
           isAdmin: true,
           isDisabled: true,
         },
@@ -122,6 +124,7 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
     id: user.id,
     email: user.email,
     nickname: user.nickname,
+    avatarUrl: user.avatarUrl,
     isAdmin,
   };
 }
@@ -173,7 +176,7 @@ export function getAdminEmails(): string[] {
 export async function checkIsAdmin(userId: string): Promise<boolean> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { isAdmin: true, email: true },
+    select: { id: true, email: true, nickname: true, avatarUrl: true, isAdmin: true },
   });
 
   if (!user) return false;

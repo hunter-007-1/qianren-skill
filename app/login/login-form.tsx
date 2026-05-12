@@ -35,6 +35,7 @@ export function LoginForm() {
 
       toast.success("登录成功");
       router.push(from);
+      router.refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "登录失败");
     } finally {
