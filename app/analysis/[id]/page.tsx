@@ -618,25 +618,6 @@ function TechProgressBar({
           </div>
         </div>
       </div>
-
-      <style jsx>{`
-        @keyframes grid-move {
-          0% {
-            background-position: 0 0;
-          }
-          100% {
-            background-position: 40px 40px;
-          }
-        }
-        @keyframes shimmer {
-          0% {
-            transform: translateX(-100%);
-          }
-          100% {
-            transform: translateX(100%);
-          }
-        }
-      `}</style>
     </motion.div>
   );
 }
