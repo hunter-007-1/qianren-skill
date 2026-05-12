@@ -11,10 +11,40 @@ export async function GET(
 
   const character = await prisma.character.findUnique({
     where: { id },
-    include: {
-      sourceDocuments: { orderBy: { createdAt: "asc" } },
-      analysis: true,
-      chatMessages: { orderBy: { createdAt: "asc" } },
+    select: {
+      id: true,
+      userId: true,
+      nickname: true,
+      relationship: true,
+      background: true,
+      timeframe: true,
+      impression: true,
+      avatarUrl: true,
+      userAvatarUrl: true,
+      analysisStatus: true,
+      errorMessage: true,
+      createdAt: true,
+      updatedAt: true,
+      sourceDocuments: {
+        orderBy: { createdAt: "asc" },
+        select: {
+          id: true,
+          filename: true,
+          fileType: true,
+          content: true,
+        },
+      },
+      analysis: {
+        select: {
+          id: true,
+          modelName: true,
+          persona: true,
+          memories: true,
+          speakingStyle: true,
+          emotionPattern: true,
+          relationshipPattern: true,
+        },
+      },
     },
   });
 

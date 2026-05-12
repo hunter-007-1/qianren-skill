@@ -89,8 +89,20 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
   const payload = verifyToken(token);
   if (!payload) return null;
 
+  // 合并 session + user 查询为一次
   const session = await prisma.session.findUnique({
     where: { token },
+    include: {
+      user: {
+        select: {
+          id: true,
+          email: true,
+          nickname: true,
+          isAdmin: true,
+          isDisabled: true,
+        },
+      },
+    },
   });
 
   if (!session || session.expiresAt < new Date()) {
@@ -100,15 +112,8 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
     return null;
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: payload.userId },
-    select: { id: true, email: true, nickname: true, isAdmin: true, isDisabled: true },
-  });
-
-  if (!user) return null;
-
-  // 检查用户是否被禁用
-  if (user.isDisabled) return null;
+  const user = session.user;
+  if (!user || user.isDisabled) return null;
 
   const adminEmails = getAdminEmails();
   const isAdmin = user.isAdmin || adminEmails.includes(user.email);

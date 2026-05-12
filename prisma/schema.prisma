@@ -91,6 +91,8 @@ model ChatMessage {
   createdAt   DateTime    @default(now())
 
   character Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  @@index([characterId])
 }
 
 enum ProcessingStatus {
