@@ -1,36 +1,22 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { LogOut, User as UserIcon, ChevronDown, Shield } from "lucide-react";
-
-interface User {
-  id: string;
-  email: string;
-  nickname: string | null;
-  isAdmin?: boolean;
-}
+import { useUser } from "@/lib/use-user";
+import { mutate } from "swr";
 
 export function UserMenu() {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data: user, isLoading } = useUser();
   const [open, setOpen] = useState(false);
-
-  useEffect(() => {
-    fetch("/api/auth/me")
-      .then((res) => res.ok ? res.json() : Promise.reject())
-      .then((data) => setUser(data))
-      .catch(() => setUser(null))
-      .finally(() => setLoading(false));
-  }, []);
 
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
+    mutate("/api/auth/me", null, { revalidate: false });
     window.location.href = "/";
   };
 
-  if (!loading && !user) {
+  if (!isLoading && !user) {
     return (
       <Link
         href="/login"

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Sparkles, ArrowLeft, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast, Toaster } from "react-hot-toast";
+import { mutate } from "swr";
 
 export function LoginForm() {
   const router = useRouter();
@@ -34,8 +35,8 @@ export function LoginForm() {
       }
 
       toast.success("登录成功");
+      await mutate("/api/auth/me");
       router.push(from);
-      router.refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "登录失败");
     } finally {
