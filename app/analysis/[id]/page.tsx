@@ -244,7 +244,7 @@ export default function AnalysisPage() {
             href={`/chat/${id}`}
             className={`flex items-center gap-2 rounded-2xl px-8 py-3.5 text-sm font-black transition-all ${
               character.analysisStatus === "DONE"
-                ? "bg-blue-600 text-white hover:bg-blue-500 hover:shadow-lg hover:shadow-blue-600/30 active:scale-95"
+                ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 hover:scale-105 active:scale-95"
                 : "bg-white/5 text-slate-600 cursor-not-allowed"
             }`}
           >
@@ -379,7 +379,7 @@ export default function AnalysisPage() {
             </div>
             <Link
               href={`/characters/${id}/edit`}
-              className="group mt-10 flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-50 py-4 text-xs font-black text-slate-600 transition-all hover:bg-slate-100 hover:text-blue-600 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-blue-400"
+              className="group mt-10 flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-blue-200 bg-blue-50 py-4 text-xs font-black text-blue-600 transition-all hover:bg-blue-100 hover:border-blue-300 hover:shadow-lg dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30"
             >
               修改基础设定
             </Link>

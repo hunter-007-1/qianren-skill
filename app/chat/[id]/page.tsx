@@ -52,6 +52,8 @@ export default function ChatPage() {
   const [searchRole, setSearchRole] = useState<"all" | "user" | "assistant">("all");
   const [updatingMemory, setUpdatingMemory] = useState(false);
   const [exportingMemory, setExportingMemory] = useState(false);
+  const [showMemoryModal, setShowMemoryModal] = useState(false);
+  const [memoryUpdateResult, setMemoryUpdateResult] = useState<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -409,22 +411,9 @@ export default function ChatPage() {
       const res = await fetch(`/api/chat/${id}/update-memory`, { method: "POST" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "记忆更新失败");
-      const newCount = data.newMemories?.length ?? 0;
-      const totalCount = data.memoryCount ?? 0;
-      toast.success(
-        (t) => (
-          <div className="flex flex-col gap-1">
-            <div className="font-bold">记忆更新完成！</div>
-            <div className="text-sm">
-              新增 {newCount} 条记忆，共 {totalCount} 条
-            </div>
-            <div className="text-xs text-slate-500">
-              角色画像已同步更新
-            </div>
-          </div>
-        ),
-        { duration: 5000 }
-      );
+      setMemoryUpdateResult(data);
+      setShowMemoryModal(true);
+      toast.success("记忆更新完成！");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "记忆更新失败");
     } finally {
@@ -1032,6 +1021,118 @@ export default function ChatPage() {
               className="mt-6 w-full rounded-xl bg-slate-100 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
             >
               关闭
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Memory Update Modal */}
+      {showMemoryModal && memoryUpdateResult && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-slate-950/50 backdrop-blur-sm"
+            onClick={() => setShowMemoryModal(false)}
+          />
+          <div className="relative w-full max-w-lg max-h-[80vh] overflow-y-auto rounded-3xl bg-white p-8 shadow-2xl dark:bg-slate-900">
+            <button
+              onClick={() => setShowMemoryModal(false)}
+              className="absolute right-5 top-5 rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800"
+            >
+              <span className="sr-only">关闭</span>
+              ✕
+            </button>
+
+            <div className="flex items-center gap-3 mb-6">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-500/10">
+                <Brain className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                  记忆更新完成
+                </h3>
+                <p className="text-xs text-slate-500">
+                  AI 已从对话中提取新的记忆
+                </p>
+              </div>
+            </div>
+
+            {/* 统计信息 */}
+            <div className="flex gap-4 mb-6">
+              <div className="flex-1 rounded-xl bg-blue-50 p-4 dark:bg-blue-900/20">
+                <div className="text-2xl font-black text-blue-600">
+                  {memoryUpdateResult.newMemories?.length ?? 0}
+                </div>
+                <div className="text-xs font-bold text-blue-500">新增记忆</div>
+              </div>
+              <div className="flex-1 rounded-xl bg-indigo-50 p-4 dark:bg-indigo-900/20">
+                <div className="text-2xl font-black text-indigo-600">
+                  {memoryUpdateResult.memoryCount ?? 0}
+                </div>
+                <div className="text-xs font-bold text-indigo-500">总计记忆</div>
+              </div>
+            </div>
+
+            {/* 新增记忆列表 */}
+            {memoryUpdateResult.newMemories?.length > 0 && (
+              <div className="mb-6">
+                <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">
+                  新增的记忆内容
+                </h4>
+                <div className="space-y-3">
+                  {memoryUpdateResult.newMemories.map((memory: any, i: number) => (
+                    <div
+                      key={i}
+                      className="rounded-xl border border-slate-200 p-4 dark:border-slate-700"
+                    >
+                      <div className="flex items-start gap-3">
+                        <span className="mt-1 h-2 w-2 rounded-full bg-amber-500 shrink-0" />
+                        <div className="flex-1">
+                          <p className="text-sm text-slate-700 dark:text-slate-300">
+                            {memory.content}
+                          </p>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            <span className="rounded-lg bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                              {memory.category}
+                            </span>
+                            <span className={`rounded-lg px-2 py-1 text-[10px] font-bold ${
+                              memory.sentiment === 'positive'
+                                ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400'
+                                : memory.sentiment === 'negative'
+                                  ? 'bg-rose-100 text-rose-600 dark:bg-rose-900/20 dark:text-rose-400'
+                                  : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                            }`}>
+                              {memory.sentiment === 'positive' ? '积极' : memory.sentiment === 'negative' ? '消极' : '中性'}
+                            </span>
+                            <span className="rounded-lg bg-blue-100 px-2 py-1 text-[10px] font-bold text-blue-600 dark:bg-blue-900/20 dark:text-blue-400">
+                              重要性: {memory.importance}/10
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 画像更新提示 */}
+            <div className="rounded-xl bg-emerald-50 p-4 dark:bg-emerald-900/20">
+              <div className="flex items-center gap-2">
+                <Check className="h-4 w-4 text-emerald-600" />
+                <span className="text-sm font-bold text-emerald-700 dark:text-emerald-400">
+                  角色画像已同步更新
+                </span>
+              </div>
+              <p className="mt-1 text-xs text-emerald-600 dark:text-emerald-500">
+                AI 将基于最新记忆调整对话风格和内容
+              </p>
+            </div>
+
+            <button
+              onClick={() => setShowMemoryModal(false)}
+              className="mt-6 w-full rounded-xl bg-amber-500 py-3 text-sm font-bold text-white hover:bg-amber-600 transition-colors"
+            >
+              知道了
             </button>
           </div>
         </div>
