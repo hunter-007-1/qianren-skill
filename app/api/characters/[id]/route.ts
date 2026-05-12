@@ -37,6 +37,7 @@ export async function GET(
       analysis: {
         select: {
           id: true,
+          characterId: true,
           modelName: true,
           persona: true,
           memories: true,
