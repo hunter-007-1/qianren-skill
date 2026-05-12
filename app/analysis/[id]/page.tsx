@@ -23,9 +23,52 @@ import {
   Zap,
   Users,
   X,
+  Clock,
+  Timer,
+  Check,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Character, AnalysisResult, analysisSchema } from "@/lib/types";
+
+const ANALYSIS_PHASES = [
+  { id: "loading", label: "加载资料", icon: Database, weight: 10 },
+  { id: "persona", label: "分析人格", icon: User, weight: 20 },
+  { id: "memories", label: "提取记忆", icon: Gem, weight: 20 },
+  { id: "speaking", label: "识别风格", icon: Languages, weight: 15 },
+  { id: "emotion", label: "分析情感", icon: Heart, weight: 15 },
+  { id: "relationship", label: "构建关系", icon: Users, weight: 15 },
+  { id: "report", label: "生成报告", icon: Brain, weight: 5 },
+];
+
+const PHASE_DESCRIPTIONS: Record<string, string> = {
+  loading: "正在读取和解析原始资料文件...",
+  persona: "从聊天记录中提取行为模式和性格特征...",
+  memories: "识别关键事件和情感锚点...",
+  speaking: "分析语言习惯、语气特点和表达方式...",
+  emotion: "挖掘情绪触发点和调节方式...",
+  relationship: "构建互动模式和依恋类型画像...",
+  report: "整合所有分析维度，生成最终报告...",
+};
+
+function calculateProgress(elapsed: number, total: number): number {
+  const ratio = elapsed / total;
+  return Math.min(95, 100 * (1 - Math.pow(1 - ratio, 2)));
+}
+
+function getCurrentPhase(elapsed: number, total: number) {
+  const progress = (elapsed / total) * 100;
+  let accumulated = 0;
+  for (let i = 0; i < ANALYSIS_PHASES.length; i++) {
+    accumulated += ANALYSIS_PHASES[i].weight;
+    if (progress < accumulated) {
+      const phaseStart = accumulated - ANALYSIS_PHASES[i].weight;
+      const phaseProgress =
+        ((progress - phaseStart) / ANALYSIS_PHASES[i].weight) * 100;
+      return { index: i, progress: Math.min(100, phaseProgress) };
+    }
+  }
+  return { index: ANALYSIS_PHASES.length - 1, progress: 100 };
+}
 
 export default function AnalysisPage() {
   const { id } = useParams();
@@ -33,6 +76,19 @@ export default function AnalysisPage() {
 
   const [character, setCharacter] = useState<Character | null>(null);
   const [loading, setLoading] = useState(true);
+  const [progress, setProgress] = useState(0);
+  const [elapsedTime, setElapsedTime] = useState(0);
+  const [currentPhaseIndex, setCurrentPhaseIndex] = useState(0);
+  const [phaseProgress, setPhaseProgress] = useState(0);
+
+  const estimatedTotal = useMemo(() => {
+    if (!character?.sourceDocuments) return 30;
+    const totalChars = character.sourceDocuments.reduce(
+      (sum, doc) => sum + doc.content.length,
+      0
+    );
+    return Math.max(20, Math.min(60, totalChars / 1000 * 0.3));
+  }, [character?.sourceDocuments]);
 
   const load = useCallback(async () => {
     try {
@@ -51,18 +107,60 @@ export default function AnalysisPage() {
     void load();
   }, [load]);
 
-  // 轮询分析状态
   useEffect(() => {
     if (character?.analysisStatus === "RUNNING") {
-      const interval = setInterval(() => {
-        void load();
+      const interval = setInterval(async () => {
+        try {
+          const res = await fetch(`/api/characters/${id}/status`);
+          const status = await res.json();
+          if (status.analysisStatus !== "RUNNING") {
+            await load();
+          }
+        } catch {
+          await load();
+        }
       }, 3000);
       return () => clearInterval(interval);
     }
-  }, [character?.analysisStatus, load]);
+  }, [character?.analysisStatus, load, id]);
+
+  useEffect(() => {
+    if (character?.analysisStatus !== "RUNNING") return;
+    const timer = setInterval(() => {
+      setElapsedTime((prev) => prev + 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [character?.analysisStatus]);
+
+  useEffect(() => {
+    if (character?.analysisStatus !== "RUNNING") return;
+    const progressTimer = setInterval(() => {
+      setProgress((prev) => {
+        const newProgress = calculateProgress(elapsedTime, estimatedTotal);
+        return Math.max(prev, newProgress);
+      });
+      const phase = getCurrentPhase(elapsedTime, estimatedTotal);
+      setCurrentPhaseIndex(phase.index);
+      setPhaseProgress(phase.progress);
+    }, 500);
+    return () => clearInterval(progressTimer);
+  }, [character?.analysisStatus, elapsedTime, estimatedTotal]);
+
+  useEffect(() => {
+    if (character?.analysisStatus === "DONE") {
+      setProgress(100);
+      setCurrentPhaseIndex(ANALYSIS_PHASES.length - 1);
+      setPhaseProgress(100);
+    }
+  }, [character?.analysisStatus]);
 
   const runAnalysis = async () => {
     try {
+      setProgress(0);
+      setElapsedTime(0);
+      setCurrentPhaseIndex(0);
+      setPhaseProgress(0);
+
       const response = await fetch(`/api/analysis/${id}`, { method: "POST" });
       const payload = await response.json();
 
@@ -70,7 +168,7 @@ export default function AnalysisPage() {
         throw new Error(payload.error ?? "分析失败");
       }
 
-      toast.success("AI 深度分析已开启");
+      toast.success("AI 深度分析已完成");
       await load();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "分析失败");
@@ -165,31 +263,30 @@ export default function AnalysisPage() {
         {/* Left: Main Analysis */}
         <div className="lg:col-span-8 space-y-8">
           {character.analysisStatus !== "DONE" ? (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="flex min-h-[500px] flex-col items-center justify-center rounded-[3rem] bg-white border border-slate-200 shadow-sm p-12 text-center dark:bg-slate-900 dark:border-slate-800"
-            >
-              <div
-                className={`relative flex h-24 w-24 items-center justify-center rounded-[2rem] bg-blue-50 text-5xl dark:bg-blue-900/20`}
+            character.analysisStatus === "RUNNING" ? (
+              <TechProgressBar
+                progress={progress}
+                phases={ANALYSIS_PHASES}
+                currentPhaseIndex={currentPhaseIndex}
+                phaseProgress={phaseProgress}
+                elapsedTime={elapsedTime}
+                estimatedTotal={estimatedTotal}
+              />
+            ) : (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="flex min-h-[500px] flex-col items-center justify-center rounded-[3rem] bg-white border border-slate-200 shadow-sm p-12 text-center dark:bg-slate-900 dark:border-slate-800"
               >
-                {character.analysisStatus === "RUNNING" ? (
-                  <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
-                ) : (
+                <div className="relative flex h-24 w-24 items-center justify-center rounded-[2rem] bg-blue-50 text-5xl dark:bg-blue-900/20">
                   <Brain className="h-12 w-12 text-blue-600" />
-                )}
-              </div>
-              <h3 className="mt-8 text-2xl font-black text-slate-900 dark:text-white">
-                {character.analysisStatus === "RUNNING"
-                  ? "AI 正在构建数字灵魂..."
-                  : "待生成的数字化身"}
-              </h3>
-              <p className="mt-4 max-w-sm text-sm font-medium text-slate-500 leading-relaxed dark:text-slate-400">
-                {character.analysisStatus === "RUNNING"
-                  ? "系统正在深度阅读每一份聊天记录，通过语言模式、情感共鸣与记忆碎片还原真实的人格特质。这通常需要 10-30 秒。"
-                  : "点击下方按钮，我们将利用大语言模型对您上传的原始资料进行多维度结构化分析，构建详细的数字人格报告。"}
-              </p>
-              {character.analysisStatus !== "RUNNING" && (
+                </div>
+                <h3 className="mt-8 text-2xl font-black text-slate-900 dark:text-white">
+                  待生成的数字化身
+                </h3>
+                <p className="mt-4 max-w-sm text-sm font-medium text-slate-500 leading-relaxed dark:text-slate-400">
+                  点击下方按钮，我们将利用大语言模型对您上传的原始资料进行多维度结构化分析，构建详细的数字人格报告。
+                </p>
                 <button
                   onClick={runAnalysis}
                   className="group mt-10 flex items-center gap-3 rounded-full bg-slate-900 px-10 py-5 text-sm font-black text-white transition-all hover:bg-blue-600 hover:shadow-2xl hover:shadow-blue-600/20 active:scale-95 dark:bg-white dark:text-slate-900 dark:hover:bg-blue-500 dark:hover:text-white"
@@ -197,8 +294,8 @@ export default function AnalysisPage() {
                   <Sparkles className="h-4 w-4 transition-transform group-hover:rotate-12" />
                   开启深度画像分析
                 </button>
-              )}
-            </motion.div>
+              </motion.div>
+            )
           ) : (
             <motion.div
               className="grid gap-6 sm:grid-cols-2"
@@ -314,6 +411,233 @@ export default function AnalysisPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+function TechProgressBar({
+  progress,
+  phases,
+  currentPhaseIndex,
+  phaseProgress,
+  elapsedTime,
+  estimatedTotal,
+}: {
+  progress: number;
+  phases: typeof ANALYSIS_PHASES;
+  currentPhaseIndex: number;
+  phaseProgress: number;
+  elapsedTime: number;
+  estimatedTotal: number;
+}) {
+  const currentPhase = phases[currentPhaseIndex];
+  const CurrentIcon = currentPhase.icon;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="relative overflow-hidden rounded-[3rem] border border-indigo-500/20 shadow-2xl shadow-indigo-500/10"
+      style={{
+        background:
+          "linear-gradient(135deg, #0a0a1a 0%, #1a1a3a 50%, #0d0d2b 100%)",
+      }}
+    >
+      {/* Grid Background */}
+      <div
+        className="absolute inset-0 opacity-30"
+        style={{
+          backgroundImage:
+            "linear-gradient(rgba(99, 102, 241, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(99, 102, 241, 0.1) 1px, transparent 1px)",
+          backgroundSize: "40px 40px",
+          animation: "grid-move 20s linear infinite",
+        }}
+      />
+
+      {/* Glow Effects */}
+      <div className="absolute top-0 left-1/2 h-32 w-96 -translate-x-1/2 -translate-y-1/2 rounded-full bg-indigo-600/20 blur-3xl" />
+      <div className="absolute bottom-0 right-0 h-48 w-48 translate-x-1/4 translate-y-1/4 rounded-full bg-purple-600/10 blur-3xl" />
+
+      <div className="relative p-10 sm:p-12">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <div className="h-3 w-3 rounded-full bg-indigo-400 animate-pulse" />
+              <div className="absolute inset-0 h-3 w-3 rounded-full bg-indigo-400 animate-ping opacity-75" />
+            </div>
+            <span className="text-lg font-black text-white tracking-tight">
+              AI 正在构建数字灵魂...
+            </span>
+          </div>
+          <div className="flex items-baseline gap-1">
+            <span className="text-4xl font-black tabular-nums text-white">
+              {Math.round(progress)}
+            </span>
+            <span className="text-lg font-bold text-indigo-400">%</span>
+          </div>
+        </div>
+
+        {/* Progress Bar */}
+        <div className="relative mt-8">
+          <div className="h-3 rounded-full bg-white/5 overflow-hidden">
+            <motion.div
+              className="h-full rounded-full relative"
+              initial={{ width: 0 }}
+              animate={{ width: `${progress}%` }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
+              style={{
+                background:
+                  "linear-gradient(90deg, #6366f1 0%, #8b5cf6 40%, #a78bfa 70%, #06b6d4 100%)",
+              }}
+            >
+              <div className="absolute right-0 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full bg-white shadow-lg shadow-indigo-500/50" />
+              <div
+                className="absolute inset-0 rounded-full opacity-50"
+                style={{
+                  background:
+                    "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%)",
+                  animation: "shimmer 2s infinite",
+                }}
+              />
+            </motion.div>
+          </div>
+
+          {/* Phase Markers */}
+          <div className="absolute top-1/2 left-0 right-0 -translate-y-1/2 flex justify-between px-1">
+            {phases.map((phase, i) => {
+              const pos =
+                phases.slice(0, i).reduce((s, p) => s + p.weight, 0) +
+                phase.weight / 2;
+              const totalWeight = phases.reduce((s, p) => s + p.weight, 0);
+              const leftPercent = (pos / totalWeight) * 100;
+
+              return (
+                <div
+                  key={phase.id}
+                  className="absolute -translate-x-1/2"
+                  style={{ left: `${leftPercent}%` }}
+                >
+                  <div
+                    className={`h-2 w-2 rounded-full transition-all duration-300 ${
+                      i < currentPhaseIndex
+                        ? "bg-indigo-400 scale-100"
+                        : i === currentPhaseIndex
+                          ? "bg-white scale-125 shadow-lg shadow-indigo-400/50"
+                          : "bg-white/20 scale-75"
+                    }`}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Current Phase Info */}
+        <motion.div
+          key={currentPhase.id}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="mt-8 flex items-center gap-4 rounded-2xl bg-white/5 p-5 border border-white/10"
+        >
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-indigo-500/20 text-indigo-400">
+            <CurrentIcon className="h-6 w-6" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-black text-white">
+              {currentPhase.label}
+            </div>
+            <div className="mt-1 text-xs text-indigo-300/80">
+              {PHASE_DESCRIPTIONS[currentPhase.id]}
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="text-2xl font-black tabular-nums text-white">
+              {Math.round(phaseProgress)}
+            </div>
+            <div className="text-[10px] font-bold text-indigo-400 uppercase">
+              阶段进度
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Steps Indicator */}
+        <div className="mt-8 flex items-center justify-between gap-2">
+          {phases.map((phase, i) => {
+            const PhaseIcon = phase.icon;
+            return (
+              <div
+                key={phase.id}
+                className="flex flex-1 flex-col items-center gap-2"
+              >
+                <div
+                  className={`flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-300 ${
+                    i < currentPhaseIndex
+                      ? "bg-indigo-500/30 text-indigo-300 border border-indigo-500/50"
+                      : i === currentPhaseIndex
+                        ? "bg-indigo-500/40 text-white border border-indigo-400 shadow-lg shadow-indigo-500/30 animate-pulse"
+                        : "bg-white/5 text-white/30 border border-white/10"
+                  }`}
+                >
+                  {i < currentPhaseIndex ? (
+                    <Check className="h-4 w-4" />
+                  ) : (
+                    <PhaseIcon className="h-4 w-4" />
+                  )}
+                </div>
+                <span
+                  className={`text-[10px] font-bold text-center transition-colors ${
+                    i <= currentPhaseIndex ? "text-indigo-300" : "text-white/30"
+                  }`}
+                >
+                  {phase.label}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Time Info */}
+        <div className="mt-8 flex items-center justify-center gap-8 text-sm">
+          <div className="flex items-center gap-2 text-indigo-300/80">
+            <Clock className="h-4 w-4" />
+            <span>
+              已用时间: <span className="font-mono font-bold text-white">{elapsedTime}</span> 秒
+            </span>
+          </div>
+          <div className="h-4 w-px bg-white/10" />
+          <div className="flex items-center gap-2 text-indigo-300/80">
+            <Timer className="h-4 w-4" />
+            <span>
+              预计剩余:{" "}
+              <span className="font-mono font-bold text-white">
+                {Math.max(0, Math.round(estimatedTotal - elapsedTime))}
+              </span>{" "}
+              秒
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <style jsx>{`
+        @keyframes grid-move {
+          0% {
+            background-position: 0 0;
+          }
+          100% {
+            background-position: 40px 40px;
+          }
+        }
+        @keyframes shimmer {
+          0% {
+            transform: translateX(-100%);
+          }
+          100% {
+            transform: translateX(100%);
+          }
+        }
+      `}</style>
+    </motion.div>
   );
 }
 
