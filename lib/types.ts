@@ -95,3 +95,16 @@ export interface ChatMessage {
   createdAt: Date | string;
   characterId?: string;
 }
+
+export interface CharacterMemory {
+  id: string;
+  characterId: string;
+  content: string;
+  category: string;
+  importance: number;
+  source: string;
+  emotionalAnchor: string | null;
+  sentiment: string;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}

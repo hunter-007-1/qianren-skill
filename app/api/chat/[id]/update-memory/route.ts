@@ -14,8 +14,13 @@ export async function POST(
       return NextResponse.json({ error: "请先登录" }, { status: 401 });
     }
 
-    const updated = await updateCharacterMemory(id);
-    return NextResponse.json({ success: true, analysis: updated });
+    const result = await updateCharacterMemory(id);
+    return NextResponse.json({
+      success: true,
+      newMemories: result.memories,
+      analysis: result.analysis,
+      memoryCount: result.memoryCount,
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "记忆更新失败";
     return NextResponse.json({ error: message }, { status: 500 });

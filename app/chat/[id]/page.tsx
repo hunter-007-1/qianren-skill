@@ -408,7 +408,12 @@ export default function ChatPage() {
       const res = await fetch(`/api/chat/${id}/update-memory`, { method: "POST" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "记忆更新失败");
-      toast.success("角色记忆已更新");
+      const newCount = data.newMemories?.length ?? 0;
+      const totalCount = data.memoryCount ?? 0;
+      toast.success(
+        `记忆已更新！新增 ${newCount} 条记忆，共 ${totalCount} 条`,
+        { duration: 4000 }
+      );
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "记忆更新失败");
     } finally {

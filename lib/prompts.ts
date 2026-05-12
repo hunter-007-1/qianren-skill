@@ -354,3 +354,118 @@ ${messagesText}
   }
 }`;
 };
+
+// ============================================================
+// 记忆提取 Prompt - 从对话中提取关键记忆点
+// ============================================================
+export const buildMemoryExtractionPrompt = (
+  recentMessages: { role: string; content: string }[],
+  nickname: string,
+) => {
+  const messagesText = recentMessages
+    .map((m) => `${m.role === "user" ? "用户" : nickname}：${m.content}`)
+    .join("\n");
+
+  return `【任务】从以下对话中提取关于"${nickname}"的关键记忆点。
+
+【对话记录】
+${messagesText}
+
+【提取规则】
+1. 提取用户明确表达的偏好、态度、观点
+2. 提取重要的事件、经历、故事
+3. 提取情感变化、关系发展
+4. 提取行为习惯、语言特点
+5. 忽略日常寒暄和无意义的内容
+
+【分类说明】
+- 偏好：用户喜欢/不喜欢的事物、兴趣爱好
+- 事件：重要的人生事件、经历、故事
+- 情感：情感变化、情绪反应、情感态度
+- 习惯：行为习惯、语言习惯、生活方式
+- 关系：人际关系、互动模式、关系变化
+
+【输出规范】
+1. 仅输出纯 JSON，不要任何 markdown 标记
+2. 每个记忆点都要有明确的分类和重要性评分
+3. importance 范围 1-10，10 为最重要
+
+【输出格式】
+{
+  "memories": [
+    {
+      "content": "记忆内容描述",
+      "category": "偏好|事件|情感|习惯|关系",
+      "importance": 1-10,
+      "emotionalAnchor": "情感锚点描述（可选）",
+      "sentiment": "positive|neutral|negative"
+    }
+  ]
+}`;
+};
+
+// ============================================================
+// 记忆分析 Prompt - 基于记忆更新人物画像
+// ============================================================
+export const buildMemoryAnalysisPrompt = (
+  memories: { content: string; category: string; importance: number }[],
+  currentAnalysis: AnalysisResult,
+  nickname: string,
+) => {
+  const memoriesText = memories
+    .map((m, i) => `${i + 1}. [${m.category}] ${m.content} (重要性: ${m.importance}/10)`)
+    .join("\n");
+
+  return `【任务】基于以下记忆点，更新"${nickname}"的人物画像。
+
+【记忆点列表】
+${memoriesText}
+
+【当前画像】
+${JSON.stringify(currentAnalysis, null, 2)}
+
+【分析要求】
+1. 综合所有记忆点，更新人物画像
+2. 保留原有有价值的信息
+3. 添加新发现的特质和模式
+4. memories 数组按重要性排序，最多 20 条
+
+【输出规范】
+1. 仅输出纯 JSON，不要任何 markdown 标记
+2. 输出完整的 JSON，结构与当前画像相同
+3. 不要省略任何字段
+
+【输出格式】
+{
+  "persona": {
+    "summary": "更新后的概述",
+    "traits": ["特质1", "特质2"]
+  },
+  "memories": [
+    {"event": "事件描述", "emotionalAnchor": "情感印记", "sentiment": "positive|neutral|negative"}
+  ],
+  "speakingStyle": {
+    "tone": ["语气特点"],
+    "habits": ["语言习惯"],
+    "samplePhrases": ["常用表达"],
+    "emojiUsage": "none|rare|moderate|frequent|very_frequent",
+    "responseSpeed": "slow|delayed|normal|quick|immediate"
+  },
+  "emotionPattern": {
+    "commonEmotions": ["常见情绪"],
+    "triggers": {
+      "positive": ["正面触发"],
+      "negative": ["负面触发"]
+    },
+    "regulationStyle": "情绪调节方式",
+    "emotionalExpressiveness": "reserved|moderate|expressive"
+  },
+  "relationshipPattern": {
+    "attachmentStyle": "依恋类型",
+    "interactionDynamics": ["互动特点"],
+    "boundaries": ["边界"],
+    "conflictStyle": "冲突处理方式",
+    "careExpression": "关心方式"
+  }
+}`;
+};

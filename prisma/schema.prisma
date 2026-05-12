@@ -55,6 +55,7 @@ model Character {
   analysis        Analysis?
   chatMessages    ChatMessage[]
   characterTags   CharacterTag[]
+  memories        CharacterMemory[]
 }
 
 model SourceDocument {
@@ -84,6 +85,24 @@ model Analysis {
   updatedAt           DateTime  @updatedAt
 
   character Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+}
+
+model CharacterMemory {
+  id              String   @id @default(cuid())
+  characterId     String
+  content         String
+  category        String
+  importance      Int
+  source          String
+  emotionalAnchor String?
+  sentiment       String   @default("neutral")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  character Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  @@index([characterId])
+  @@index([characterId, importance])
 }
 
 model ChatMessage {
