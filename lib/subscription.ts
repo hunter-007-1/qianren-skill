@@ -26,15 +26,26 @@ export const PLAN_LIMITS: Record<string, PlanLimits> = {
     exportPerDay: -1,
     model: "minimax-m2.5-free",
   },
+  admin: {
+    characters: -1,
+    chatPerDay: -1,
+    analysisPerDay: -1,
+    memoryPerDay: -1,
+    exportPerDay: -1,
+    model: "minimax-m2.5-free",
+  },
 };
 
 export async function getUserPlan(userId: string): Promise<string> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { plan: true, planExpiresAt: true },
+    select: { plan: true, planExpiresAt: true, isAdmin: true },
   });
 
   if (!user) return "free";
+
+  // 管理员直接返回 "admin" 套餐（无限制）
+  if (user.isAdmin) return "admin";
 
   if (user.plan === "pro" && user.planExpiresAt) {
     if (new Date() > user.planExpiresAt) {

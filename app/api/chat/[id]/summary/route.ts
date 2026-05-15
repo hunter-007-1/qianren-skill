@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getModelName, getOpenAIClient } from "@/lib/ai-client";
 import { prisma } from "@/lib/db";
 import { buildSummaryPrompt } from "@/lib/prompts";
+import { getCurrentUser } from "@/lib/auth";
+import { checkUsageLimit, recordUsage } from "@/lib/subscription";
 
 export async function POST(
   _request: Request,
@@ -9,6 +11,25 @@ export async function POST(
 ) {
   try {
     const { id } = await context.params;
+
+    // 获取当前用户并检查分析次数限制（摘要也消耗分析额度）
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: "请先登录" }, { status: 401 });
+    }
+
+    const usageLimit = await checkUsageLimit(user.id, "analysis");
+    if (!usageLimit.allowed) {
+      return NextResponse.json(
+        {
+          error: `今日分析次数已达上限（${usageLimit.limit}次），请升级到专业版`,
+          remaining: 0,
+          limit: usageLimit.limit,
+          plan: usageLimit.plan,
+        },
+        { status: 403 }
+      );
+    }
 
     const character = await prisma.character.findUnique({
       where: { id },
@@ -94,6 +115,9 @@ export async function POST(
         );
       }
     }
+
+    // 记录使用量
+    await recordUsage(user.id, "analysis");
 
     return NextResponse.json(summary);
   } catch (error) {

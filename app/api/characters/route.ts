@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { parseByFileType } from "@/lib/file-parser";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { checkCharacterLimit } from "@/lib/subscription";
 
 export async function GET() {
   try {
@@ -37,6 +38,20 @@ export async function POST(request: Request) {
     const user = await getCurrentUser();
     if (!user) {
       return NextResponse.json({ error: "请先登录" }, { status: 401 });
+    }
+
+    // 检查角色数量限制
+    const characterLimit = await checkCharacterLimit(user.id);
+    if (!characterLimit.allowed) {
+      return NextResponse.json(
+        {
+          error: `角色数量已达上限（${characterLimit.limit}个），请升级到专业版`,
+          current: characterLimit.current,
+          limit: characterLimit.limit,
+          plan: characterLimit.plan,
+        },
+        { status: 403 }
+      );
     }
     
     const formData = await request.formData();

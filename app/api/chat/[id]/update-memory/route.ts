@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { updateCharacterMemory } from "@/lib/services/memory-service";
+import { checkUsageLimit, recordUsage } from "@/lib/subscription";
 
 export async function POST(
   _request: Request,
@@ -14,7 +15,25 @@ export async function POST(
       return NextResponse.json({ error: "请先登录" }, { status: 401 });
     }
 
+    // 检查记忆更新次数限制
+    const usageLimit = await checkUsageLimit(user.id, "memory");
+    if (!usageLimit.allowed) {
+      return NextResponse.json(
+        {
+          error: `今日记忆更新次数已达上限（${usageLimit.limit}次），请升级到专业版`,
+          remaining: 0,
+          limit: usageLimit.limit,
+          plan: usageLimit.plan,
+        },
+        { status: 403 }
+      );
+    }
+
     const result = await updateCharacterMemory(id);
+    
+    // 记录使用量
+    await recordUsage(user.id, "memory");
+    
     return NextResponse.json({
       success: true,
       newMemories: result.memories,
