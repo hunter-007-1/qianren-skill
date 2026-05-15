@@ -16,12 +16,18 @@ model User {
   avatarUrl   String?
   isAdmin     Boolean    @default(false)
   isDisabled  Boolean    @default(false)
+  plan        String     @default("free")
+  planExpiresAt DateTime?
+  trialEndsAt DateTime?
   lastLoginAt DateTime?
   createdAt   DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
   characters Character[]
   sessions   Session[]
   tags       Tag[]
+  subscriptions Subscription[]
+  payments    Payment[]
+  usageRecords UsageRecord[]
 }
 
 model Session {
@@ -157,4 +163,71 @@ model CharacterTag {
   tag       Tag       @relation(fields: [tagId], references: [id], onDelete: Cascade)
 
   @@id([characterId, tagId])
+}
+
+model SubscriptionPlan {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  displayName String
+  price       Float
+  yearlyPrice Float?
+  features    Json
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  subscriptions Subscription[]
+}
+
+model Subscription {
+  id          String   @id @default(cuid())
+  userId      String
+  planId      String
+  status      String   @default("active")
+  startDate   DateTime @default(now())
+  endDate     DateTime
+  autoRenew   Boolean  @default(true)
+  paymentMethod String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user   User             @relation(fields: [userId], references: [id])
+  plan   SubscriptionPlan @relation(fields: [planId], references: [id])
+  payments Payment[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+model Payment {
+  id              String   @id @default(cuid())
+  userId          String
+  subscriptionId  String
+  amount          Float
+  currency        String   @default("CNY")
+  paymentMethod   String
+  status          String   @default("pending")
+  transactionId   String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user         User         @relation(fields: [userId], references: [id])
+  subscription Subscription @relation(fields: [subscriptionId], references: [id])
+
+  @@index([userId])
+  @@index([transactionId])
+}
+
+model UsageRecord {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  count     Int      @default(1)
+  date      String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, type, date])
+  @@index([userId])
 }

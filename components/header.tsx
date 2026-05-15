@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, PlusCircle, Sparkles } from "lucide-react";
+import { Home, PlusCircle, Sparkles, Crown } from "lucide-react";
 import { ThemeToggle } from "./theme-toggle";
 import { UserMenu } from "./user-menu";
+import { useUser } from "@/lib/use-user";
+import { useEffect, useState } from "react";
 
 const navItems = [
   { href: "/", label: "首页", icon: Home },
@@ -13,6 +15,19 @@ const navItems = [
 
 export function Header() {
   const pathname = usePathname();
+  const { data: user } = useUser();
+  const [userPlan, setUserPlan] = useState("free");
+
+  useEffect(() => {
+    if (user) {
+      fetch("/api/subscription/current")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.plan) setUserPlan(data.plan);
+        })
+        .catch(() => {});
+    }
+  }, [user]);
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-slate-200/80 bg-white/85 backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-950/85">
@@ -60,6 +75,15 @@ export function Header() {
               );
             })}
           </nav>
+          {user && userPlan !== "pro" && (
+            <Link
+              href="/pricing"
+              className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 px-3 py-1.5 text-xs font-bold text-white hover:shadow-md hover:shadow-indigo-500/20 transition-all"
+            >
+              <Crown className="h-3 w-3" />
+              升级
+            </Link>
+          )}
           <div className="mx-1.5 h-6 w-px bg-slate-200 dark:bg-slate-800" />
           <UserMenu />
           <ThemeToggle />
