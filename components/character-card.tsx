@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Modal } from "./modal";
 import { Character } from "@/lib/types";
+import { getContrastColor } from "@/lib/color-utils";
 
 interface CharacterCardProps {
   character: Character;
@@ -113,8 +114,11 @@ export function CharacterCard({ character, onDelete }: CharacterCardProps) {
           {character.characterTags?.map((ct) => (
             <span
               key={ct.tag.id}
-              className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium text-white"
-              style={{ backgroundColor: ct.tag.color }}
+              className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium"
+              style={{ 
+                backgroundColor: ct.tag.color,
+                color: getContrastColor(ct.tag.color)
+              }}
             >
               {ct.tag.name}
             </span>

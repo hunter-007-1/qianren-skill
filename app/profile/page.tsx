@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   ArrowLeft,
+  ChevronRight,
   User as UserIcon,
   Edit3,
   Shield,
@@ -78,7 +79,7 @@ export default function ProfilePage() {
       <div className="flex min-h-[80vh] flex-col items-center justify-center space-y-4">
         <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
         <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">
-          Loading...
+          加载中...
         </p>
       </div>
     );
@@ -163,7 +164,7 @@ export default function ProfilePage() {
               <p className="text-sm text-slate-500">修改昵称、头像等信息</p>
             </div>
           </div>
-          <ArrowLeft className="h-5 w-5 text-slate-400 rotate-180" />
+          <ChevronRight className="h-5 w-5 text-slate-400" />
         </Link>
 
         <Link
@@ -179,7 +180,7 @@ export default function ProfilePage() {
               <p className="text-sm text-slate-500">修改密码、登录安全</p>
             </div>
           </div>
-          <ArrowLeft className="h-5 w-5 text-slate-400 rotate-180" />
+          <ChevronRight className="h-5 w-5 text-slate-400" />
         </Link>
 
         <Link
@@ -195,7 +196,7 @@ export default function ProfilePage() {
               <p className="text-sm text-slate-500">主题切换等设置</p>
             </div>
           </div>
-          <ArrowLeft className="h-5 w-5 text-slate-400 rotate-180" />
+          <ChevronRight className="h-5 w-5 text-slate-400" />
         </Link>
       </motion.section>
 

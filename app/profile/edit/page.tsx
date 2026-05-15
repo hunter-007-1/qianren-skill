@@ -70,7 +70,7 @@ export default function ProfileEditPage() {
       <div className="flex min-h-[80vh] flex-col items-center justify-center space-y-4">
         <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
         <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">
-          Loading...
+          加载中...
         </p>
       </div>
     );

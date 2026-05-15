@@ -54,6 +54,7 @@ export default function ChatPage() {
   const [exportingMemory, setExportingMemory] = useState(false);
   const [showMemoryModal, setShowMemoryModal] = useState(false);
   const [memoryUpdateResult, setMemoryUpdateResult] = useState<any>(null);
+  const [showExportMenu, setShowExportMenu] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -509,7 +510,7 @@ export default function ChatPage() {
       <div className="flex min-h-[80vh] flex-col items-center justify-center space-y-4 text-slate-400">
         <Loader2 className="h-10 w-10 animate-spin" />
         <p className="text-xs font-black uppercase tracking-widest">
-          Initialising Connection...
+          加载中...
         </p>
       </div>
     );
@@ -631,64 +632,71 @@ export default function ChatPage() {
                   <FileText className="h-4 w-4" />
                 )}
               </button>
-              <div className="relative group">
+              <div className="relative">
                 <button
                   disabled={messages.length === 0}
                   title="导出对话"
-                  className="p-2.5 rounded-xl text-slate-400 hover:bg-emerald-50 hover:text-emerald-600 transition-all dark:hover:bg-emerald-600/10 disabled:opacity-20"
+                  onClick={() => setShowExportMenu(!showExportMenu)}
+                  className={`p-2.5 rounded-xl transition-all ${
+                    showExportMenu
+                      ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-600/10"
+                      : "text-slate-400 hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-600/10"
+                  } disabled:opacity-20`}
                 >
                   <Download className="h-4 w-4" />
                 </button>
-                <div className="absolute right-0 top-full mt-1 hidden group-hover:block z-50">
-                  <div className="rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl dark:border-slate-700 dark:bg-slate-800 min-w-[180px]">
-                    <button
-                      onClick={exportAsTxt}
-                      className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-700"
-                    >
-                      <FileText className="h-4 w-4" />
-                      导出为 TXT
-                    </button>
-                    <button
-                      onClick={exportAsHtml}
-                      className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-700"
-                    >
-                      <FileCode className="h-4 w-4" />
-                      导出为 HTML
-                    </button>
-                    <button
-                      onClick={exportAsPdf}
-                      className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-700"
-                    >
-                      <FileDown className="h-4 w-4" />
-                      导出为 PDF
-                    </button>
-                    <div className="my-1 h-px bg-slate-200 dark:bg-slate-700" />
-                    <button
-                      onClick={copyToClipboard}
-                      className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-700"
-                    >
-                      {copied ? (
-                        <Check className="h-4 w-4 text-emerald-500" />
-                      ) : (
-                        <Copy className="h-4 w-4" />
-                      )}
-                      {copied ? "已复制" : "复制到剪贴板"}
-                    </button>
-                    <div className="my-1 h-px bg-slate-200 dark:bg-slate-700" />
-                    <button
-                      onClick={exportMemoryFile}
-                      disabled={exportingMemory}
-                      className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-700"
-                    >
-                      {exportingMemory ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Brain className="h-4 w-4" />
-                      )}
-                      导出记忆档案
-                    </button>
+                {showExportMenu && (
+                  <div className="absolute right-0 top-full mt-1 z-50">
+                    <div className="rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl dark:border-slate-700 dark:bg-slate-800 min-w-[180px]">
+                      <button
+                        onClick={() => { exportAsTxt(); setShowExportMenu(false); }}
+                        className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-700"
+                      >
+                        <FileText className="h-4 w-4" />
+                        导出为 TXT
+                      </button>
+                      <button
+                        onClick={() => { exportAsHtml(); setShowExportMenu(false); }}
+                        className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-700"
+                      >
+                        <FileCode className="h-4 w-4" />
+                        导出为 HTML
+                      </button>
+                      <button
+                        onClick={() => { exportAsPdf(); setShowExportMenu(false); }}
+                        className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-700"
+                      >
+                        <FileDown className="h-4 w-4" />
+                        导出为 PDF
+                      </button>
+                      <div className="my-1 h-px bg-slate-200 dark:bg-slate-700" />
+                      <button
+                        onClick={() => { copyToClipboard(); setShowExportMenu(false); }}
+                        className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-700"
+                      >
+                        {copied ? (
+                          <Check className="h-4 w-4 text-emerald-500" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
+                        )}
+                        {copied ? "已复制" : "复制到剪贴板"}
+                      </button>
+                      <div className="my-1 h-px bg-slate-200 dark:bg-slate-700" />
+                      <button
+                        onClick={() => { exportMemoryFile(); setShowExportMenu(false); }}
+                        disabled={exportingMemory}
+                        className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-700"
+                      >
+                        {exportingMemory ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Brain className="h-4 w-4" />
+                        )}
+                        导出记忆档案
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
               <button
                 onClick={clearSession}
@@ -767,7 +775,7 @@ export default function ChatPage() {
             )}
           </AnimatePresence>
 
-          <div className="flex-1 space-y-8 overflow-y-auto p-8 scroll-smooth scrollbar-hide">
+          <div className="flex-1 space-y-4 overflow-y-auto p-8 scroll-smooth scrollbar-hide">
             <AnimatePresence mode="popLayout">
               {messages.length === 0 ? (
                 <motion.div
@@ -859,7 +867,7 @@ export default function ChatPage() {
                             : message.content}
                         </div>
                         <p
-                          className={`text-[9px] font-black uppercase tracking-widest text-slate-300 dark:text-slate-600 ${message.role === "user" ? "text-right" : "text-left"}`}
+                          className={`text-[10px] font-medium text-slate-400 dark:text-slate-500 ${message.role === "user" ? "text-right" : "text-left"}`}
                         >
                           {new Date(message.createdAt).toLocaleTimeString([], {
                             hour: "2-digit",

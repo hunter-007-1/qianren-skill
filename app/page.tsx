@@ -9,6 +9,7 @@ import { Plus, Sparkles, LayoutGrid, ArrowRight, Lightbulb, User, Zap, Shield, C
 import { motion, AnimatePresence } from "framer-motion";
 import useSWR from "swr";
 import { toast, Toaster } from "react-hot-toast";
+import { getContrastColor } from "@/lib/color-utils";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -143,12 +144,15 @@ export default function Home() {
                 }
                 className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
                   selectedTagId === tag.id
-                    ? "text-white shadow-sm"
+                    ? "shadow-sm"
                     : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400"
                 }`}
                 style={
                   selectedTagId === tag.id
-                    ? { backgroundColor: tag.color }
+                    ? { 
+                        backgroundColor: tag.color,
+                        color: getContrastColor(tag.color)
+                      }
                     : undefined
                 }
               >

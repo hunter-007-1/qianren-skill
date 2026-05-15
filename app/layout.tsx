@@ -4,6 +4,7 @@ import "./globals.css";
 import { Header } from "@/components/header";
 import { ImpersonationBanner } from "@/components/impersonation-banner";
 import { ThemeProvider } from "next-themes";
+import { PageTransition } from "@/components/page-transition";
 
 const notoSans = Noto_Sans_SC({
   variable: "--font-noto-sans-sc",
@@ -38,7 +39,7 @@ export default function RootLayout({
           <div className="flex min-h-screen flex-col">
             <ImpersonationBanner />
             <Header />
-            {children}
+            <PageTransition>{children}</PageTransition>
           </div>
         </ThemeProvider>
       </body>
