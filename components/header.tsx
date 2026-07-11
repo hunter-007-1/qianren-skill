@@ -8,6 +8,8 @@ import { UserMenu } from "./user-menu";
 import { useUser } from "@/lib/use-user";
 import { useEffect, useState } from "react";
 
+const PAYMENT_ENABLED = process.env.NEXT_PUBLIC_PAYMENT_ENABLED === "true";
+
 const navItems = [
   { href: "/", label: "首页", icon: Home },
   { href: "/characters/new", label: "创建", icon: PlusCircle },
@@ -75,7 +77,7 @@ export function Header() {
               );
             })}
           </nav>
-          {user && userPlan !== "pro" && (
+          {PAYMENT_ENABLED && user && userPlan !== "pro" && (
             <Link
               href="/pricing"
               className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 px-3 py-1.5 text-xs font-bold text-white hover:shadow-md hover:shadow-indigo-500/20 transition-all"

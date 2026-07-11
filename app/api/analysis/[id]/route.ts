@@ -21,7 +21,7 @@ export async function POST(
     if (!usageLimit.allowed) {
       return NextResponse.json(
         {
-          error: `今日分析次数已达上限（${usageLimit.limit}次），请升级到专业版`,
+          error: `今日分析次数已达上限（${usageLimit.limit}次），请明天再试`,
           remaining: 0,
           limit: usageLimit.limit,
           plan: usageLimit.plan,

@@ -1,8 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { isPaymentEnabled } from "@/lib/payment-enabled";
 
 export async function POST(request: Request) {
+  if (!isPaymentEnabled()) {
+    return NextResponse.json({ error: "支付功能暂未开放" }, { status: 403 });
+  }
+
   try {
     const user = await getCurrentUser();
     if (!user) {
@@ -16,6 +21,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "请选择套餐" }, { status: 400 });
     }
 
+    if (!["monthly", "yearly"].includes(period)) {
+      return NextResponse.json({ error: "无效的订阅周期" }, { status: 400 });
+    }
+
     const plan = await prisma.subscriptionPlan.findUnique({
       where: { id: planId },
     });
@@ -24,12 +33,38 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "套餐不存在" }, { status: 404 });
     }
 
-    const existingSubscription = await prisma.subscription.findFirst({
+    if (plan.name === "free") {
+      return NextResponse.json({ error: "免费版无需订阅" }, { status: 400 });
+    }
+
+    const existingActive = await prisma.subscription.findFirst({
       where: { userId: user.id, status: "active" },
     });
 
-    if (existingSubscription) {
+    if (existingActive) {
       return NextResponse.json({ error: "您已有活跃订阅" }, { status: 400 });
+    }
+
+    const existingPending = await prisma.subscription.findFirst({
+      where: {
+        userId: user.id,
+        planId: plan.id,
+        status: "pending",
+        billingPeriod: period,
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    if (existingPending) {
+      const amount =
+        period === "yearly" && plan.yearlyPrice ? plan.yearlyPrice : plan.price;
+
+      return NextResponse.json({
+        subscriptionId: existingPending.id,
+        amount,
+        planName: plan.displayName,
+        period,
+      });
     }
 
     const endDate = new Date();
@@ -44,16 +79,19 @@ export async function POST(request: Request) {
         userId: user.id,
         planId: plan.id,
         status: "pending",
+        billingPeriod: period,
         endDate,
       },
     });
 
-    const amount = period === "yearly" && plan.yearlyPrice ? plan.yearlyPrice : plan.price;
+    const amount =
+      period === "yearly" && plan.yearlyPrice ? plan.yearlyPrice : plan.price;
 
     return NextResponse.json({
       subscriptionId: subscription.id,
       amount,
       planName: plan.displayName,
+      period,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "创建订阅失败";

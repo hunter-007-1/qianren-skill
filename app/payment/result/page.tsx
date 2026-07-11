@@ -1,39 +1,50 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
 import { CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 
+const PAYMENT_ENABLED = process.env.NEXT_PUBLIC_PAYMENT_ENABLED === "true";
+
 function PaymentResultContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const paymentId = searchParams.get("id");
   const [status, setStatus] = useState<"loading" | "success" | "failed">("loading");
 
   useEffect(() => {
-    if (paymentId) {
-      const checkStatus = setInterval(async () => {
-        try {
-          const res = await fetch(`/api/payment/callback?id=${paymentId}`);
-          const data = await res.json();
+    if (!PAYMENT_ENABLED) {
+      router.replace("/");
+    }
+  }, [router]);
 
-          if (data.status === "success") {
-            clearInterval(checkStatus);
-            setStatus("success");
-          } else if (data.status === "failed") {
-            clearInterval(checkStatus);
-            setStatus("failed");
-          }
-        } catch {
+  useEffect(() => {
+    if (!PAYMENT_ENABLED || !paymentId) return;
+
+    const checkStatus = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/payment/callback?id=${paymentId}`);
+        const data = await res.json();
+
+        if (data.status === "success") {
+          clearInterval(checkStatus);
+          setStatus("success");
+        } else if (data.status === "failed") {
           clearInterval(checkStatus);
           setStatus("failed");
         }
-      }, 1000);
+      } catch {
+        clearInterval(checkStatus);
+        setStatus("failed");
+      }
+    }, 1000);
 
-      return () => clearInterval(checkStatus);
-    }
+    return () => clearInterval(checkStatus);
   }, [paymentId]);
+
+  if (!PAYMENT_ENABLED) return null;
 
   return (
     <motion.div

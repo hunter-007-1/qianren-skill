@@ -19,6 +19,8 @@ import { Toaster, toast } from "react-hot-toast";
 import { motion } from "framer-motion";
 import { useUser } from "@/lib/use-user";
 
+const PAYMENT_ENABLED = process.env.NEXT_PUBLIC_PAYMENT_ENABLED === "true";
+
 interface Plan {
   id: string;
   name: string;
@@ -56,12 +58,33 @@ export default function PricingPage() {
   }, [user]);
 
   const handleSubscribe = (planId: string) => {
+    if (!PAYMENT_ENABLED) return;
     if (!user) {
       router.push("/login");
       return;
     }
     router.push(`/payment/${planId}?period=${billingPeriod}`);
   };
+
+  if (!PAYMENT_ENABLED) {
+    return (
+      <main className="mx-auto w-full max-w-lg flex-1 px-4 py-24 sm:px-6 lg:px-8 text-center">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 mb-8"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          返回首页
+        </Link>
+        <h1 className="text-2xl font-black text-slate-900 dark:text-white mb-3">
+          付费功能暂未开放
+        </h1>
+        <p className="text-slate-500">
+          目前所有用户均可免费使用基础功能，感谢支持。
+        </p>
+      </main>
+    );
+  }
 
   const freePlan = plans.find((p) => p.name === "free");
   const proPlan = plans.find((p) => p.name === "pro");
@@ -281,7 +304,7 @@ export default function PricingPage() {
               支持哪些支付方式？
             </h3>
             <p className="text-sm text-slate-500">
-              我们支持支付宝和微信支付，安全便捷。
+              目前支持微信扫码支付，安全便捷。
             </p>
           </div>
           <div>

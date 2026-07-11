@@ -16,6 +16,8 @@ import { Toaster, toast } from "react-hot-toast";
 import { motion } from "framer-motion";
 import { useUser } from "@/lib/use-user";
 
+const PAYMENT_ENABLED = process.env.NEXT_PUBLIC_PAYMENT_ENABLED === "true";
+
 export default function SubscriptionPage() {
   const router = useRouter();
   const { data: user, isLoading: userLoading } = useUser();
@@ -93,7 +95,7 @@ export default function SubscriptionPage() {
               我的订阅
             </h1>
             <p className="text-sm text-slate-500">
-              管理你的订阅和付费功能
+              {PAYMENT_ENABLED ? "管理你的订阅和付费功能" : "查看当前套餐与使用情况"}
             </p>
           </div>
         </div>
@@ -121,7 +123,7 @@ export default function SubscriptionPage() {
             )}
           </div>
 
-          {!isPro && (
+          {!isPro && PAYMENT_ENABLED && (
             <Link
               href="/pricing"
               className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-6 py-3 text-sm font-bold text-white hover:bg-indigo-500 transition-colors"

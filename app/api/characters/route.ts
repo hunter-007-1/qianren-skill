@@ -45,7 +45,7 @@ export async function POST(request: Request) {
     if (!characterLimit.allowed) {
       return NextResponse.json(
         {
-          error: `角色数量已达上限（${characterLimit.limit}个），请升级到专业版`,
+          error: `角色数量已达上限（${characterLimit.limit}个）`,
           current: characterLimit.current,
           limit: characterLimit.limit,
           plan: characterLimit.plan,

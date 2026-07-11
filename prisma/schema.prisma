@@ -184,6 +184,7 @@ model Subscription {
   userId      String
   planId      String
   status      String   @default("active")
+  billingPeriod String @default("monthly")
   startDate   DateTime @default(now())
   endDate     DateTime
   autoRenew   Boolean  @default(true)

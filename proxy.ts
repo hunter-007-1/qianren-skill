@@ -12,6 +12,7 @@ const publicPaths: string[] = [
   "/api/auth/me",
   "/admin",
   "/api/admin/",
+  "/api/payment/wechat/notify",
 ];
 
 const publicApiPrefixes = [
