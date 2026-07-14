@@ -5,7 +5,7 @@ import useSWR from "swr";
 import { User, Loader2, Search } from "lucide-react";
 import { AdminHeader } from "@/components/admin/admin-header";
 import { UserActions } from "@/components/admin/user-actions";
-import { useUser } from "@/lib/use-user";
+import { useAdminUser } from "@/lib/use-admin";
 
 interface UserData {
   id: string;
@@ -21,7 +21,7 @@ interface UserData {
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export default function AdminUsersPage() {
-  const { data: me } = useUser();
+  const { data: me } = useAdminUser();
   const { data: users, mutate, isLoading } = useSWR<UserData[]>("/api/admin/users", fetcher);
   const [currentUserId, setCurrentUserId] = useState("");
   const [query, setQuery] = useState("");

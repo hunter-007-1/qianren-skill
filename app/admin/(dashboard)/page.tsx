@@ -5,7 +5,7 @@ import useSWR from "swr";
 import { Users, Sparkles, BarChart3, User, ArrowRight, Loader2 } from "lucide-react";
 import { StatsCard } from "@/components/admin/stats-card";
 import { AdminHeader } from "@/components/admin/admin-header";
-import { useUser } from "@/lib/use-user";
+import { useAdminUser } from "@/lib/use-admin";
 
 interface StatsData {
   overview: {
@@ -26,7 +26,7 @@ const shortcuts = [
 ];
 
 export default function AdminOverviewPage() {
-  const { data: user } = useUser();
+  const { data: user } = useAdminUser();
   const { data: stats, isLoading } = useSWR<StatsData>("/api/admin/stats", fetcher);
 
   return (

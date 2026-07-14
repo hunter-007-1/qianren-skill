@@ -4,7 +4,7 @@ import {
   verifyPassword,
   findUserByEmail,
   createSession,
-  setSessionCookie,
+  setAdminSessionCookie,
   getAdminEmails,
 } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -57,12 +57,13 @@ export async function POST(request: Request) {
       data: { lastLoginAt: new Date() },
     });
 
+    // 仅写入管理后台 Cookie，不覆盖前台用户登录态
     const token = await createSession(user.id);
 
     try {
-      await setSessionCookie(token);
+      await setAdminSessionCookie(token);
     } catch (e) {
-      console.error("setSessionCookie error:", e);
+      console.error("setAdminSessionCookie error:", e);
     }
 
     return NextResponse.json({

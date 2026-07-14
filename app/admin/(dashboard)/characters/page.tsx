@@ -17,7 +17,7 @@ import { AdminHeader } from "@/components/admin/admin-header";
 import { ChatModal } from "@/components/admin/chat-modal";
 import { DocumentsModal } from "@/components/admin/documents-modal";
 import { BatchActions } from "@/components/admin/batch-actions";
-import { useUser } from "@/lib/use-user";
+import { useAdminUser } from "@/lib/use-admin";
 
 interface CharacterData {
   id: string;
@@ -34,7 +34,7 @@ interface CharacterData {
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export default function AdminCharactersPage() {
-  const { data: me } = useUser();
+  const { data: me } = useAdminUser();
   const { data: characters, mutate, isLoading } = useSWR<CharacterData[]>(
     "/api/admin/characters",
     fetcher
@@ -84,7 +84,11 @@ export default function AdminCharactersPage() {
 
     setLoading(true);
     try {
-      const res = await fetch(`/api/characters/${id}`, { method: "DELETE" });
+      const res = await fetch("/api/admin/characters/batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: [id], action: "delete" }),
+      });
       if (!res.ok) throw new Error("删除失败");
       mutate();
       toast.success("角色已删除");

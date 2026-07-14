@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentAdmin } from "@/lib/auth";
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
 import { Toaster } from "react-hot-toast";
 
@@ -8,14 +8,10 @@ export default async function AdminDashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const user = await getCurrentUser();
+  const admin = await getCurrentAdmin();
 
-  if (!user) {
+  if (!admin) {
     redirect("/admin/login");
-  }
-
-  if (!user.isAdmin) {
-    redirect("/admin/login?error=forbidden");
   }
 
   return (

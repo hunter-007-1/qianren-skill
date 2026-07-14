@@ -5,54 +5,54 @@ import { useRouter } from "next/navigation";
 import { AlertTriangle, ArrowLeft } from "lucide-react";
 import { toast } from "react-hot-toast";
 
+const PREV_USER_TOKEN_KEY = "previous-user-token";
+const LEGACY_ADMIN_TOKEN_KEY = "admin-token";
+
 export function ImpersonationBanner() {
   const router = useRouter();
   const [isImpersonating, setIsImpersonating] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // 检查是否处于模拟登录状态
-    const adminToken = localStorage.getItem("admin-token");
-    setIsImpersonating(!!adminToken);
+    setIsImpersonating(
+      localStorage.getItem(PREV_USER_TOKEN_KEY) !== null ||
+        localStorage.getItem(LEGACY_ADMIN_TOKEN_KEY) !== null
+    );
   }, []);
 
   const handleStopImpersonate = async () => {
     setLoading(true);
     try {
-      const adminToken = localStorage.getItem("admin-token");
-      if (!adminToken) {
-        toast.error("无法恢复管理员身份，请重新登录");
-        router.push("/admin/login");
-        return;
-      }
+      const previousUserToken =
+        localStorage.getItem(PREV_USER_TOKEN_KEY) ??
+        localStorage.getItem(LEGACY_ADMIN_TOKEN_KEY);
 
-      // 调用 stop-impersonate API，服务端恢复 admin cookie
       const res = await fetch("/api/admin/stop-impersonate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ adminToken }),
+        body: JSON.stringify({ previousUserToken }),
       });
 
       if (!res.ok) {
         const data = await res.json();
-        // 如果 token 过期，清除 localStorage 并跳转登录
-        if (res.status === 400) {
-          localStorage.removeItem("admin-token");
-          toast.error(data.error || "管理员会话已过期，请重新登录");
+        if (res.status === 401) {
+          localStorage.removeItem(PREV_USER_TOKEN_KEY);
+          localStorage.removeItem(LEGACY_ADMIN_TOKEN_KEY);
+          toast.error(data.error || "管理员会话已过期，请重新登录后台");
           router.push("/admin/login");
           return;
         }
         throw new Error(data.error || "恢复失败");
       }
 
-      // 清除 localStorage 中的 admin token
-      localStorage.removeItem("admin-token");
+      localStorage.removeItem(PREV_USER_TOKEN_KEY);
+      localStorage.removeItem(LEGACY_ADMIN_TOKEN_KEY);
 
-      toast.success("已恢复管理员身份");
+      toast.success("已恢复前台登录状态");
       router.push("/admin");
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "恢复管理员身份失败");
+      toast.error(error instanceof Error ? error.message : "恢复失败");
     } finally {
       setLoading(false);
     }
@@ -64,9 +64,7 @@ export function ImpersonationBanner() {
     <div className="sticky top-0 z-50 flex items-center justify-between bg-yellow-500 px-4 py-2 text-white">
       <div className="flex items-center gap-2">
         <AlertTriangle className="h-4 w-4" />
-        <span className="text-sm font-medium">
-          当前以其他用户身份登录
-        </span>
+        <span className="text-sm font-medium">当前以其他用户身份登录</span>
       </div>
       <button
         onClick={handleStopImpersonate}

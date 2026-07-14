@@ -12,8 +12,8 @@ interface AdminHeaderProps {
 
 export function AdminHeader({ title, subtitle, email, nickname }: AdminHeaderProps) {
   const handleLogout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
-    mutate("/api/auth/me", null, { revalidate: false });
+    await fetch("/api/admin/logout", { method: "POST" });
+    mutate("/api/admin/me", null, { revalidate: false });
     window.location.href = "/admin/login";
   };
 
@@ -39,7 +39,7 @@ export function AdminHeader({ title, subtitle, email, nickname }: AdminHeaderPro
           className="flex items-center gap-2 rounded-xl border border-slate-700 px-3 py-2 text-sm font-medium text-slate-400 transition hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-400"
         >
           <LogOut className="h-4 w-4" />
-          退出
+          退出后台
         </button>
       </div>
     </header>

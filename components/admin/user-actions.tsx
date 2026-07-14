@@ -123,10 +123,14 @@ export function UserActions({
 
       const data = await res.json();
 
-      // 保存 admin token 到 localStorage（API 已服务端设置新用户 cookie）
-      if (data.adminToken) {
-        localStorage.setItem("admin-token", data.adminToken);
+      // 仅切换前台用户 Cookie；管理员 Cookie 保持不变
+      if (data.previousUserToken) {
+        localStorage.setItem("previous-user-token", data.previousUserToken);
+      } else {
+        // 标记正在模拟，停止时清除前台会话
+        localStorage.setItem("previous-user-token", "");
       }
+      localStorage.removeItem("admin-token");
 
       toast.success(`已切换到 ${data.user.nickname || data.user.email} 的账号`);
       router.push("/");

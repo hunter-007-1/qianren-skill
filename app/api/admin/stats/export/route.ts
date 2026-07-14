@@ -1,18 +1,13 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser, checkIsAdmin } from "@/lib/auth";
+import { getCurrentAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import * as XLSX from "xlsx";
 
 export async function GET() {
   try {
-    const user = await getCurrentUser();
+    const user = await getCurrentAdmin();
     if (!user) {
-      return NextResponse.json({ error: "请先登录" }, { status: 401 });
-    }
-
-    const isAdmin = await checkIsAdmin(user.id);
-    if (!isAdmin) {
-      return NextResponse.json({ error: "无权限" }, { status: 403 });
+      return NextResponse.json({ error: "请先登录管理员后台" }, { status: 401 });
     }
 
     // 获取用户数据

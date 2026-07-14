@@ -24,7 +24,7 @@ import {
 } from "recharts";
 import { StatsCard } from "@/components/admin/stats-card";
 import { AdminHeader } from "@/components/admin/admin-header";
-import { useUser } from "@/lib/use-user";
+import { useAdminUser } from "@/lib/use-admin";
 
 interface StatsData {
   overview: {
@@ -48,7 +48,7 @@ const fetcher = (url: string) => fetch(url).then((res) => res.json());
 const COLORS = ["#94a3b8", "#3b82f6", "#22c55e", "#ef4444"];
 
 export default function AdminStatsPage() {
-  const { data: me } = useUser();
+  const { data: me } = useAdminUser();
   const { data: stats, isLoading } = useSWR<StatsData>("/api/admin/stats", fetcher);
 
   const analysisStatsData = stats

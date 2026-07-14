@@ -38,7 +38,7 @@ function AdminLoginForm() {
       }
 
       toast.success("管理员登录成功");
-      await mutate("/api/auth/me");
+      await mutate("/api/admin/me");
       router.push("/admin");
       router.refresh();
     } catch (error) {

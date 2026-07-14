@@ -12,6 +12,7 @@ const publicPaths: string[] = [
   "/api/auth/me",
   "/admin/login",
   "/api/admin/login",
+  "/api/admin/logout",
   "/api/payment/wechat/notify",
 ];
 
@@ -35,11 +36,19 @@ function isPublicPath(pathname: string, method: string) {
   return publicPaths.some((path) => pathname === path || pathname.startsWith(path + "/"));
 }
 
-function redirectToLogin(request: NextRequest, pathname: string) {
-  const isAdminArea =
+function isAdminAreaPath(pathname: string) {
+  if (pathname === "/admin/login" || pathname === "/api/admin/login" || pathname === "/api/admin/logout") {
+    return false;
+  }
+  return (
     pathname === "/admin" ||
-    (pathname.startsWith("/admin/") && pathname !== "/admin/login") ||
-    (pathname.startsWith("/api/admin/") && pathname !== "/api/admin/login");
+    pathname.startsWith("/admin/") ||
+    pathname.startsWith("/api/admin/")
+  );
+}
+
+function redirectToLogin(request: NextRequest, pathname: string) {
+  const isAdminArea = isAdminAreaPath(pathname);
 
   if (pathname.startsWith("/api/")) {
     return NextResponse.json({ error: "未登录" }, { status: 401 });
@@ -64,7 +73,11 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const token = request.cookies.get("qianren-session")?.value;
+  const isAdminArea = isAdminAreaPath(pathname);
+  const token = isAdminArea
+    ? request.cookies.get("qianren-admin-session")?.value
+    : request.cookies.get("qianren-session")?.value;
+
   if (!token) {
     return redirectToLogin(request, pathname);
   }
@@ -74,9 +87,6 @@ export async function proxy(request: NextRequest) {
     if (pathname.startsWith("/api/")) {
       return NextResponse.json({ error: "登录已失效" }, { status: 401 });
     }
-    const isAdminArea =
-      pathname === "/admin" ||
-      (pathname.startsWith("/admin/") && pathname !== "/admin/login");
     const loginUrl = new URL(isAdminArea ? "/admin/login" : "/login", request.url);
     if (!isAdminArea) {
       loginUrl.searchParams.set("from", pathname);

@@ -1,13 +1,13 @@
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentAdmin } from "@/lib/auth";
 
 export default async function AdminLoginLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const user = await getCurrentUser();
-  if (user?.isAdmin) {
+  const admin = await getCurrentAdmin();
+  if (admin) {
     redirect("/admin");
   }
 
