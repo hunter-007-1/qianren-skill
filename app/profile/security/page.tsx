@@ -35,6 +35,10 @@ export default function SecurityPage() {
       toast.error("两次输入的新密码不一致");
       return;
     }
+    if (oldPassword === newPassword) {
+      toast.error("新密码不能与当前密码相同");
+      return;
+    }
     setSaving(true);
     try {
       const res = await fetch("/api/user/password", {

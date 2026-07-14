@@ -6,7 +6,6 @@ import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   ChevronRight,
-  User as UserIcon,
   Edit3,
   Shield,
   Settings,
@@ -14,10 +13,13 @@ import {
   Loader2,
   Brain,
   Calendar,
+  Crown,
 } from "lucide-react";
 import { Toaster, toast } from "react-hot-toast";
 import { motion } from "framer-motion";
 import { useUser } from "@/lib/use-user";
+
+const PAYMENT_ENABLED = process.env.NEXT_PUBLIC_PAYMENT_ENABLED === "true";
 
 interface UserProfile {
   id: string;
@@ -40,6 +42,19 @@ interface UserCharacter {
   _count: { chatMessages: number };
 }
 
+function analysisStatusLabel(status: string) {
+  switch (status) {
+    case "DONE":
+      return { text: "已分析", className: "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400" };
+    case "RUNNING":
+      return { text: "分析中", className: "bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400" };
+    case "FAILED":
+      return { text: "分析失败", className: "bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400" };
+    default:
+      return { text: "待分析", className: "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400" };
+  }
+}
+
 export default function ProfilePage() {
   const router = useRouter();
   const { data: authUser, isLoading: userLoading } = useUser();
@@ -47,6 +62,7 @@ export default function ProfilePage() {
   const [characters, setCharacters] = useState<UserCharacter[]>([]);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [loadingCharacters, setLoadingCharacters] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     if (!userLoading && !authUser) {
@@ -55,26 +71,60 @@ export default function ProfilePage() {
   }, [authUser, userLoading, router]);
 
   useEffect(() => {
-    if (authUser) {
-      fetch("/api/user/profile")
-        .then((res) => res.json())
-        .then((data) => {
-          setProfile(data);
-          setLoadingProfile(false);
-        })
-        .catch(() => setLoadingProfile(false));
+    if (!authUser) return;
 
-      fetch("/api/user/characters")
-        .then((res) => res.json())
-        .then((data) => {
-          setCharacters(data);
-          setLoadingCharacters(false);
-        })
-        .catch(() => setLoadingCharacters(false));
-    }
-  }, [authUser]);
+    let cancelled = false;
+    setLoadError(false);
+    setLoadingProfile(true);
+    setLoadingCharacters(true);
 
-  if (userLoading || !authUser || loadingProfile || !profile) {
+    (async () => {
+      try {
+        const [profileRes, charactersRes] = await Promise.all([
+          fetch("/api/user/profile"),
+          fetch("/api/user/characters"),
+        ]);
+
+        if (cancelled) return;
+
+        if (profileRes.status === 401) {
+          router.push("/login");
+          return;
+        }
+
+        if (!profileRes.ok) {
+          throw new Error("profile");
+        }
+
+        const profileData = await profileRes.json();
+        if (!profileData?.id || profileData.error) {
+          throw new Error("profile");
+        }
+        setProfile(profileData);
+        setLoadingProfile(false);
+
+        if (charactersRes.ok) {
+          const charactersData = await charactersRes.json();
+          setCharacters(Array.isArray(charactersData) ? charactersData : []);
+        } else {
+          setCharacters([]);
+        }
+        setLoadingCharacters(false);
+      } catch {
+        if (cancelled) return;
+        setLoadError(true);
+        setLoadingProfile(false);
+        setLoadingCharacters(false);
+        toast.error("加载个人资料失败");
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authUser, router]);
+
+  if (userLoading || !authUser || (loadingProfile && !loadError)) {
     return (
       <div className="flex min-h-[80vh] flex-col items-center justify-center space-y-4">
         <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
@@ -85,11 +135,26 @@ export default function ProfilePage() {
     );
   }
 
+  if (loadError || !profile) {
+    return (
+      <div className="flex min-h-[80vh] flex-col items-center justify-center gap-4 px-4">
+        <p className="text-sm font-medium text-slate-500">个人资料加载失败</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white"
+        >
+          重试
+        </button>
+      </div>
+    );
+  }
+
+  const displayName = profile.nickname || profile.email || "?";
+
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
       <Toaster position="top-right" />
 
-      {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -104,7 +169,6 @@ export default function ProfilePage() {
         </Link>
       </motion.div>
 
-      {/* User Info Card */}
       <motion.section
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -116,12 +180,12 @@ export default function ProfilePage() {
             {profile.avatarUrl ? (
               <img
                 src={profile.avatarUrl}
-                alt={profile.nickname || "User"}
+                alt={displayName}
                 className="h-full w-full object-cover"
               />
             ) : (
               <div className="flex h-full w-full items-center justify-center text-4xl font-black text-blue-400">
-                {(profile.nickname || profile.email)[0].toUpperCase()}
+                {displayName[0].toUpperCase()}
               </div>
             )}
           </div>
@@ -130,11 +194,16 @@ export default function ProfilePage() {
               {profile.nickname || "未设置昵称"}
             </h1>
             <p className="mt-1 text-sm text-slate-400">{profile.email}</p>
-            <div className="mt-3 flex items-center gap-4 text-xs text-slate-500">
+            <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-slate-500">
               <span className="flex items-center gap-1">
                 <Calendar className="h-3 w-3" />
                 注册时间: {new Date(profile.createdAt).toLocaleDateString("zh-CN")}
               </span>
+              {profile.lastLoginAt && (
+                <span className="flex items-center gap-1">
+                  最近登录: {new Date(profile.lastLoginAt).toLocaleDateString("zh-CN")}
+                </span>
+              )}
               <span className="flex items-center gap-1">
                 <MessageSquare className="h-3 w-3" />
                 创建角色: {profile._count?.characters ?? 0} 个
@@ -144,7 +213,6 @@ export default function ProfilePage() {
         </div>
       </motion.section>
 
-      {/* Menu Items */}
       <motion.section
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -161,7 +229,7 @@ export default function ProfilePage() {
             </div>
             <div>
               <h3 className="font-bold text-slate-900 dark:text-white">编辑个人资料</h3>
-              <p className="text-sm text-slate-500">修改昵称、头像等信息</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">修改昵称、头像等信息</p>
             </div>
           </div>
           <ChevronRight className="h-5 w-5 text-slate-400" />
@@ -177,11 +245,29 @@ export default function ProfilePage() {
             </div>
             <div>
               <h3 className="font-bold text-slate-900 dark:text-white">账号安全</h3>
-              <p className="text-sm text-slate-500">修改密码、登录安全</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">修改密码</p>
             </div>
           </div>
           <ChevronRight className="h-5 w-5 text-slate-400" />
         </Link>
+
+        {PAYMENT_ENABLED && (
+          <Link
+            href="/profile/subscription"
+            className="flex items-center justify-between p-6 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors border-b border-slate-100 dark:border-slate-800"
+          >
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 dark:bg-amber-900/20">
+                <Crown className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-900 dark:text-white">我的订阅</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400">查看套餐与用量</p>
+              </div>
+            </div>
+            <ChevronRight className="h-5 w-5 text-slate-400" />
+          </Link>
+        )}
 
         <Link
           href="/profile/settings"
@@ -193,14 +279,13 @@ export default function ProfilePage() {
             </div>
             <div>
               <h3 className="font-bold text-slate-900 dark:text-white">偏好设置</h3>
-              <p className="text-sm text-slate-500">主题切换等设置</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">主题切换等设置</p>
             </div>
           </div>
           <ChevronRight className="h-5 w-5 text-slate-400" />
         </Link>
       </motion.section>
 
-      {/* My Characters */}
       <motion.section
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -228,7 +313,7 @@ export default function ProfilePage() {
             <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
               还没有创建角色
             </h3>
-            <p className="text-sm text-slate-500 mb-6">
+            <p className="text-sm text-slate-500 mb-6 dark:text-slate-400">
               创建你的第一个数字灵魂，开始对话吧
             </p>
             <Link
@@ -240,47 +325,46 @@ export default function ProfilePage() {
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">
-            {characters.map((char) => (
-              <Link
-                key={char.id}
-                href={`/chat/${char.id}`}
-                className="group rounded-[2rem] bg-white border border-slate-200 p-6 shadow-sm hover:shadow-md hover:border-slate-300 transition-all dark:bg-slate-900 dark:border-slate-800 dark:hover:border-slate-700"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl bg-slate-100 dark:bg-slate-800">
-                    {char.avatarUrl ? (
-                      <img
-                        src={char.avatarUrl}
-                        alt={char.nickname}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center text-xl font-black text-blue-600">
-                        {char.nickname[0]}
+            {characters.map((char) => {
+              const status = analysisStatusLabel(char.analysisStatus);
+              return (
+                <Link
+                  key={char.id}
+                  href={`/chat/${char.id}`}
+                  className="group rounded-[2rem] bg-white border border-slate-200 p-6 shadow-sm hover:shadow-md hover:border-slate-300 transition-all dark:bg-slate-900 dark:border-slate-800 dark:hover:border-slate-700"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl bg-slate-100 dark:bg-slate-800">
+                      {char.avatarUrl ? (
+                        <img
+                          src={char.avatarUrl}
+                          alt={char.nickname}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-xl font-black text-blue-600">
+                          {(char.nickname || "?")[0]}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-slate-900 dark:text-white truncate">
+                        {char.nickname}
+                      </h3>
+                      <p className="text-sm text-slate-500 truncate dark:text-slate-400">
+                        {char.relationship || "未设置关系"}
+                      </p>
+                      <div className="mt-1 flex items-center gap-2 text-xs text-slate-400">
+                        <span className={`rounded-full px-2 py-0.5 ${status.className}`}>
+                          {status.text}
+                        </span>
+                        <span>{char._count?.chatMessages ?? 0} 条消息</span>
                       </div>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-slate-900 dark:text-white truncate">
-                      {char.nickname}
-                    </h3>
-                    <p className="text-sm text-slate-500 truncate">
-                      {char.relationship || "未设置关系"}
-                    </p>
-                    <div className="mt-1 flex items-center gap-2 text-xs text-slate-400">
-                      <span className={`rounded-full px-2 py-0.5 ${
-                        char.analysisStatus === "DONE"
-                          ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400"
-                          : "bg-slate-100 text-slate-500 dark:bg-slate-800"
-                      }`}>
-                        {char.analysisStatus === "DONE" ? "已分析" : "待分析"}
-                      </span>
-                      <span>{char._count.chatMessages} 条消息</span>
                     </div>
                   </div>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              );
+            })}
           </div>
         )}
       </motion.section>

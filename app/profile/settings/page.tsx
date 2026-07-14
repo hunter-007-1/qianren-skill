@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeft, Loader2, Settings, Sun, Moon, Monitor } from "lucide-react";
 import { Toaster } from "react-hot-toast";
 import { motion } from "framer-motion";
@@ -13,6 +13,11 @@ export default function SettingsPage() {
   const router = useRouter();
   const { data: user, isLoading: userLoading } = useUser();
   const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!userLoading && !user) {
@@ -68,11 +73,10 @@ export default function SettingsPage() {
             <h1 className="text-2xl font-black text-slate-900 dark:text-white">
               偏好设置
             </h1>
-            <p className="text-sm text-slate-500">自定义你的使用体验</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">自定义你的使用体验</p>
           </div>
         </div>
 
-        {/* Theme Selection */}
         <div>
           <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4">
             主题外观
@@ -80,7 +84,7 @@ export default function SettingsPage() {
           <div className="grid gap-3">
             {themes.map((t) => {
               const Icon = t.icon;
-              const isActive = theme === t.value;
+              const isActive = mounted && theme === t.value;
               return (
                 <button
                   key={t.value}
@@ -91,27 +95,43 @@ export default function SettingsPage() {
                       : "border-slate-200 hover:border-slate-300 dark:border-slate-700 dark:hover:border-slate-600"
                   }`}
                 >
-                  <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${
-                    isActive
-                      ? "bg-blue-100 text-blue-600 dark:bg-blue-800 dark:text-blue-400"
-                      : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
-                  }`}>
+                  <div
+                    className={`flex h-12 w-12 items-center justify-center rounded-xl ${
+                      isActive
+                        ? "bg-blue-100 text-blue-600 dark:bg-blue-800 dark:text-blue-400"
+                        : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
+                    }`}
+                  >
                     <Icon className="h-5 w-5" />
                   </div>
                   <div className="flex-1 text-left">
-                    <h3 className={`font-bold ${
-                      isActive
-                        ? "text-blue-700 dark:text-blue-400"
-                        : "text-slate-900 dark:text-white"
-                    }`}>
+                    <h3
+                      className={`font-bold ${
+                        isActive
+                          ? "text-blue-700 dark:text-blue-400"
+                          : "text-slate-900 dark:text-white"
+                      }`}
+                    >
                       {t.label}
                     </h3>
-                    <p className="text-sm text-slate-500">{t.description}</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                      {t.description}
+                    </p>
                   </div>
                   {isActive && (
                     <div className="h-6 w-6 rounded-full bg-blue-500 flex items-center justify-center">
-                      <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      <svg
+                        className="h-4 w-4 text-white"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M5 13l4 4L19 7"
+                        />
                       </svg>
                     </div>
                   )}

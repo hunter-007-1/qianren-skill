@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ArrowLeft, Loader2, Save, Camera } from "lucide-react";
+import { ArrowLeft, Loader2, Save, Camera, Trash2 } from "lucide-react";
 import { Toaster, toast } from "react-hot-toast";
 import { motion } from "framer-motion";
 import { useUser } from "@/lib/use-user";
@@ -28,22 +28,30 @@ export default function ProfileEditPage() {
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        toast.error("头像图片不能超过 2MB");
-        return;
-      }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setAvatarUrl(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("请选择图片文件");
+      return;
     }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("头像图片不能超过 2MB");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setAvatarUrl(reader.result as string);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSave = async () => {
     if (!nickname.trim()) {
       toast.error("昵称不能为空");
+      return;
+    }
+    if (nickname.trim().length > 32) {
+      toast.error("昵称不能超过32个字符");
       return;
     }
     setSaving(true);
@@ -55,12 +63,23 @@ export default function ProfileEditPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "保存失败");
-      await mutate("/api/user/profile");
+
+      await mutate(
+        "/api/auth/me",
+        {
+          id: data.id,
+          email: data.email,
+          nickname: data.nickname,
+          avatarUrl: data.avatarUrl,
+          isAdmin: data.isAdmin,
+        },
+        { revalidate: true }
+      );
+
       toast.success("保存成功");
       router.push("/profile");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "保存失败");
-    } finally {
       setSaving(false);
     }
   };
@@ -103,7 +122,6 @@ export default function ProfileEditPage() {
           编辑个人资料
         </h1>
 
-        {/* Avatar */}
         <div className="flex flex-col items-center mb-8">
           <div className="relative group">
             <div className="h-32 w-32 overflow-hidden rounded-3xl bg-slate-100 dark:bg-slate-800 ring-4 ring-slate-200 dark:ring-slate-700">
@@ -129,10 +147,21 @@ export default function ProfileEditPage() {
               />
             </label>
           </div>
-          <p className="mt-3 text-sm text-slate-500">点击更换头像</p>
+          <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
+            点击更换头像
+          </p>
+          {avatarUrl && (
+            <button
+              type="button"
+              onClick={() => setAvatarUrl(null)}
+              className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-red-500 hover:text-red-600"
+            >
+              <Trash2 className="h-3 w-3" />
+              移除头像
+            </button>
+          )}
         </div>
 
-        {/* Nickname */}
         <div className="mb-8">
           <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
             昵称
@@ -142,11 +171,11 @@ export default function ProfileEditPage() {
             value={nickname}
             onChange={(e) => setNickname(e.target.value)}
             placeholder="设置你的昵称"
+            maxLength={32}
             className="w-full rounded-xl border-2 border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 outline-none transition-all focus:border-blue-600 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:focus:border-blue-500"
           />
         </div>
 
-        {/* Email (readonly) */}
         <div className="mb-8">
           <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
             邮箱
@@ -160,7 +189,6 @@ export default function ProfileEditPage() {
           <p className="mt-1 text-xs text-slate-400">邮箱地址不可修改</p>
         </div>
 
-        {/* Save Button */}
         <button
           onClick={handleSave}
           disabled={saving}
