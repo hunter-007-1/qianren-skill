@@ -55,10 +55,22 @@ export default function ChatPage() {
   const [showMemoryModal, setShowMemoryModal] = useState(false);
   const [memoryUpdateResult, setMemoryUpdateResult] = useState<any>(null);
   const [showExportMenu, setShowExportMenu] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const shouldStickToBottomRef = useRef(true);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    // 只滚动聊天容器，避免 scrollIntoView 带动整页窗口跳转
+    container.scrollTo({ top: container.scrollHeight, behavior });
+  };
+
+  const handleMessagesScroll = () => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    const distanceFromBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight;
+    shouldStickToBottomRef.current = distanceFromBottom < 80;
   };
 
   const filteredMessages = useMemo(() => {
@@ -122,8 +134,10 @@ export default function ChatPage() {
   }, [load]);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, sending, typing]);
+    if (!shouldStickToBottomRef.current) return;
+    // instant 避免 smooth 叠加多次造成窗口弹跳
+    scrollToBottom("instant");
+  }, [messages, typing]);
 
   const send = async () => {
     const content = input.trim();
@@ -140,6 +154,7 @@ export default function ChatPage() {
     setInput("");
     setSending(true);
     setTyping(true);
+    shouldStickToBottomRef.current = true;
     setMessages((prev) => [...prev, optimisticUser]);
 
     try {
@@ -153,8 +168,13 @@ export default function ChatPage() {
       if (!response.ok) throw new Error(payload.error ?? "发送失败");
 
       setMessages((prev) => {
-        const filtered = prev.filter((m) => m.id !== optimisticUser.id);
-        return [...filtered, payload.user, payload.assistant];
+        // 保留临时消息 id，避免回复回来时气泡 remount 造成弹跳
+        const next = prev.map((m) =>
+          m.id === optimisticUser.id
+            ? { ...payload.user, id: optimisticUser.id }
+            : m,
+        );
+        return [...next, payload.assistant];
       });
       setTyping(false);
     } catch (error) {
@@ -775,8 +795,12 @@ export default function ChatPage() {
             )}
           </AnimatePresence>
 
-          <div className="flex-1 space-y-4 overflow-y-auto p-8 scroll-smooth scrollbar-hide">
-            <AnimatePresence mode="popLayout">
+          <div
+            ref={messagesContainerRef}
+            onScroll={handleMessagesScroll}
+            className="flex-1 space-y-4 overflow-y-auto p-8 scrollbar-hide"
+          >
+            <AnimatePresence initial={false}>
               {messages.length === 0 ? (
                 <motion.div
                   initial={{ opacity: 0 }}
@@ -813,8 +837,9 @@ export default function ChatPage() {
               ) : (
                 displayMessages.map((message) => (
                   <motion.div
-                    initial={{ opacity: 0, y: 10 }}
+                    initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.15 }}
                     key={message.id}
                     className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
                   >
@@ -909,7 +934,6 @@ export default function ChatPage() {
                 </motion.div>
               )}
             </AnimatePresence>
-            <div ref={messagesEndRef} />
           </div>
 
           <footer className="border-t border-slate-100 p-6 lg:p-10 dark:border-slate-800/50">
