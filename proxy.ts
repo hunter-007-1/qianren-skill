@@ -10,8 +10,8 @@ const publicPaths: string[] = [
   "/api/auth/login",
   "/api/auth/logout",
   "/api/auth/me",
-  "/admin",
-  "/api/admin/",
+  "/admin/login",
+  "/api/admin/login",
   "/api/payment/wechat/notify",
 ];
 
@@ -35,6 +35,23 @@ function isPublicPath(pathname: string, method: string) {
   return publicPaths.some((path) => pathname === path || pathname.startsWith(path + "/"));
 }
 
+function redirectToLogin(request: NextRequest, pathname: string) {
+  const isAdminArea =
+    pathname === "/admin" ||
+    (pathname.startsWith("/admin/") && pathname !== "/admin/login") ||
+    (pathname.startsWith("/api/admin/") && pathname !== "/api/admin/login");
+
+  if (pathname.startsWith("/api/")) {
+    return NextResponse.json({ error: "未登录" }, { status: 401 });
+  }
+
+  const loginUrl = new URL(isAdminArea ? "/admin/login" : "/login", request.url);
+  if (!isAdminArea) {
+    loginUrl.searchParams.set("from", pathname);
+  }
+  return NextResponse.redirect(loginUrl);
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const method = request.method;
@@ -49,12 +66,7 @@ export async function proxy(request: NextRequest) {
 
   const token = request.cookies.get("qianren-session")?.value;
   if (!token) {
-    if (pathname.startsWith("/api/")) {
-      return NextResponse.json({ error: "未登录" }, { status: 401 });
-    }
-    const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("from", pathname);
-    return NextResponse.redirect(loginUrl);
+    return redirectToLogin(request, pathname);
   }
 
   const payload = verifyToken(token);
@@ -62,8 +74,13 @@ export async function proxy(request: NextRequest) {
     if (pathname.startsWith("/api/")) {
       return NextResponse.json({ error: "登录已失效" }, { status: 401 });
     }
-    const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("from", pathname);
+    const isAdminArea =
+      pathname === "/admin" ||
+      (pathname.startsWith("/admin/") && pathname !== "/admin/login");
+    const loginUrl = new URL(isAdminArea ? "/admin/login" : "/login", request.url);
+    if (!isAdminArea) {
+      loginUrl.searchParams.set("from", pathname);
+    }
     return NextResponse.redirect(loginUrl);
   }
 

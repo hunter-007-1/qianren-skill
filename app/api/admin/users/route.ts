@@ -20,6 +20,8 @@ export async function GET() {
         email: true,
         nickname: true,
         isAdmin: true,
+        isDisabled: true,
+        lastLoginAt: true,
         createdAt: true,
         _count: {
           select: { characters: true },

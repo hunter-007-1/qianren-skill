@@ -56,7 +56,7 @@ export function UserMenu() {
               className="flex w-full items-center gap-2 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-700"
             >
               <Shield className="h-4 w-4" />
-              管理员面板
+              管理后台
             </Link>
           )}
           <div className="my-1 h-px bg-slate-200 dark:bg-slate-700" />

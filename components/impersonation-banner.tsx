@@ -22,7 +22,7 @@ export function ImpersonationBanner() {
       const adminToken = localStorage.getItem("admin-token");
       if (!adminToken) {
         toast.error("无法恢复管理员身份，请重新登录");
-        router.push("/login");
+        router.push("/admin/login");
         return;
       }
 
@@ -39,7 +39,7 @@ export function ImpersonationBanner() {
         if (res.status === 400) {
           localStorage.removeItem("admin-token");
           toast.error(data.error || "管理员会话已过期，请重新登录");
-          router.push("/login");
+          router.push("/admin/login");
           return;
         }
         throw new Error(data.error || "恢复失败");
