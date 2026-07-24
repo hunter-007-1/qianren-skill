@@ -2,9 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Noto_Sans_SC } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/header";
-import { ImpersonationBanner } from "@/components/impersonation-banner";
 import { ThemeProvider } from "next-themes";
-import { PageTransition } from "@/components/page-transition";
 
 const notoSans = Noto_Sans_SC({
   variable: "--font-noto-sans-sc",
@@ -32,14 +30,31 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN" suppressHydrationWarning>
+      <head>
+        {/* 防止深色模式闪烁 */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var theme = localStorage.getItem('theme');
+                  if (!theme) {
+                    theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                  }
+                  document.documentElement.classList.add(theme);
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
+      </head>
       <body
         className={`${notoSans.variable} min-h-full bg-slate-50 text-slate-900 antialiased transition-colors duration-300 dark:bg-slate-950 dark:text-white`}
       >
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <div className="flex min-h-screen flex-col">
-            <ImpersonationBanner />
             <Header />
-            <PageTransition>{children}</PageTransition>
+            {children}
           </div>
         </ThemeProvider>
       </body>
